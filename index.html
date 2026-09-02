@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JENSEN education – Visselblåsartjänst</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ── HEADER ─────────────────────────────────────────────── -->
+<header id="header">
+  <div class="header-inner">
+    <div class="logo">
+      <img class="logo-img" src="https://www.jenseneducation.se/themes/custom/jensen/css/graphics/logo-gold-jensen-education.svg" alt="JENSEN education">
+      <div class="logo-wordmark">
+        <span class="logo-jensen">JENSEN</span>
+        <span class="logo-subtitle">Visselblåsartjänst</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <div id="header-profile" style="display:none;"></div>
+      <button id="btn-logout" class="btn btn-outline" style="display:none;">Logga ut</button>
+    </div>
+  </div>
+</header>
+
+<!-- ── TAB NAVIGATION ─────────────────────────────────────── -->
+<nav id="tab-nav">
+  <button class="tab-btn active" data-tab="anmal" onclick="handleTab('anmal')">
+    📝&nbsp; Anmäl ärende
+  </button>
+  <button class="tab-btn" data-tab="mina" onclick="handleTab('mina')">
+    📋&nbsp; Mina ärenden
+  </button>
+  <button class="tab-btn" data-tab="admin" onclick="handleTab('admin')">
+    🔒&nbsp; HR &amp; Admin
+  </button>
+</nav>
+
+<main>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- LANDING (TAB PANELS)                                   -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="view" id="view-landing">
+
+    <!-- Panel: Anmäl ärende -->
+    <div class="tab-panel active" id="panel-anmal">
+      <div class="landing-panel">
+        <div class="panel-icon"><img src="website_colors_and_logo/Shield.png" alt="Skydd" style="width:54px;height:54px;object-fit:contain;"></div>
+        <h1><em>Anmäl ett</em> ärende anonymt</h1>
+        <p class="lead">
+          Som medarbetare på JENSEN kan du tryggt rapportera missförhållanden, trakasserier
+          eller andra oegentligheter. Registrera dig med din <strong>@jenseneducation.se</strong>-adress
+          och välj ett lösenord – det är allt som krävs. Din identitet skyddas fullständigt;
+          mottagaren ser aldrig ditt namn, enbart ett anonymt ärendenummer.
+        </p>
+        <div class="panel-actions">
+          <button class="btn btn-gold" onclick="showEmpRegister()">Skapa konto &amp; anmäl</button>
+          <button class="btn btn-ghost" onclick="showEmpLogin()">Jag har redan ett konto</button>
+        </div>
+        <div class="trust-items">
+          <div class="trust-item"><span class="trust-icon">🔒</span><span>Din identitet skyddas</span></div>
+          <div class="trust-item"><span class="trust-icon">🪪</span><span>Mottagaren ser bara ett anonymt ID</span></div>
+          <div class="trust-item"><span class="trust-icon">💬</span><span>Tvåvägskommunikation anonymt</span></div>
+          <div class="trust-item"><span class="trust-icon">⚖️</span><span>Skyddad av visselblåsarlagen</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel: Mina ärenden -->
+    <div class="tab-panel" id="panel-mina">
+      <div class="landing-panel">
+        <div class="panel-icon">📋</div>
+        <h1><em>Följ upp</em> ditt ärende</h1>
+        <p class="lead">
+          Logga in för att se status på dina ärenden och läsa svar från HR
+          eller din chef. Allt sker under ditt anonyma ärendenummer.
+        </p>
+        <div class="panel-actions">
+          <button class="btn btn-gold" onclick="showEmpLogin()">Logga in som medarbetare</button>
+          <button class="btn btn-ghost" onclick="showEmpRegister()">Skapa konto</button>
+        </div>
+        <div class="trust-items">
+          <div class="trust-item"><span class="trust-icon">🔄</span><span>Svar direkt i ärendet</span></div>
+          <div class="trust-item"><span class="trust-icon">📊</span><span>Se ärendestatus i realtid</span></div>
+          <div class="trust-item"><span class="trust-icon">🗂️</span><span>Alla dina ärenden samlade</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel: Admin -->
+    <div class="tab-panel" id="panel-admin">
+      <div class="landing-panel">
+        <div class="panel-icon">🔒</div>
+        <h1><em>HR &amp;</em> administratörsportal</h1>
+        <p class="lead">
+          Denna portal är för HR-personal, chefer och administratörer.
+          Logga in för att hantera inkomna ärenden. Anmälarnas identitet
+          är alltid dold – du ser enbart ett anonymt ärendenummer.
+        </p>
+        <div class="panel-actions">
+          <button class="btn btn-gold" onclick="showAdminLogin()">Logga in som admin / HR</button>
+        </div>
+        <div class="trust-items">
+          <div class="trust-item"><span class="trust-icon">👤</span><span>Anmälarens identitet visas aldrig</span></div>
+          <div class="trust-item"><span class="trust-icon">📬</span><span>Svara direkt i ärendet</span></div>
+          <div class="trust-item"><span class="trust-icon">📁</span><span>Hantera och avsluta ärenden</span></div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /view-landing -->
+
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- EMPLOYEE REGISTER                                      -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="view" id="view-emp-register">
+    <div class="form-wrap">
+      <button class="btn-back" onclick="showLanding('anmal')">← Tillbaka</button>
+
+      <!-- Steg 1: Uppgifter -->
+      <div id="reg-step1">
+        <h1>Skapa konto</h1>
+        <p class="form-subtitle">
+          Endast e-postadresser från <strong>@jenseneducation.se</strong> accepteras.
+          En verifieringslänk skickas till din inkorg för att bekräfta att du är JENSEN-anställd.
+          Ditt konto kopplas sedan till ett anonymt ärendenummer – HR ser aldrig ditt namn.
+        </p>
+
+        <div class="form-group">
+          <label for="reg-email">JENSEN-e-postadress</label>
+          <input type="email" id="reg-email" placeholder="ditt.namn@jenseneducation.se" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="reg-pw">Lösenord</label>
+          <input type="password" id="reg-pw" placeholder="Minst 8 tecken" autocomplete="new-password">
+        </div>
+        <div class="form-group">
+          <label for="reg-pw2">Bekräfta lösenord</label>
+          <input type="password" id="reg-pw2" placeholder="Upprepa lösenordet" autocomplete="new-password">
+        </div>
+
+        <div class="error-msg" id="reg-err"></div>
+        <button id="btn-send-code" class="btn btn-gold btn-full" onclick="handleSendCode()">Skapa konto →</button>
+        <p class="form-link">Har du redan ett konto? <a href="#" onclick="showEmpLogin();return false;">Logga in här</a></p>
+      </div>
+
+      <!-- Steg 2: Kontrollera inkorgen -->
+      <div id="reg-step2" style="display:none;">
+        <div style="text-align:center;font-size:48px;margin-bottom:16px;">✉️</div>
+        <h1>Kontrollera din inkorg!</h1>
+        <p class="form-subtitle">
+          Vi har skickat ett verifieringsmail till <strong id="reg-sent-to"></strong>.
+          Klicka på länken i mailet för att aktivera ditt konto, och logga sedan in här.
+        </p>
+        <button class="btn btn-gold btn-full" onclick="showEmpLogin()">Gå till inloggning</button>
+        <p class="form-link" style="margin-top:12px;">
+          <a href="#" onclick="resetRegForm();return false;">← Ändra e-postadress</a>
+        </p>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- EMPLOYEE LOGIN                                         -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="view" id="view-emp-login">
+    <div class="form-wrap">
+      <button class="btn-back" onclick="showLanding('mina')">← Tillbaka</button>
+      <h1>Logga in</h1>
+      <p class="form-subtitle">Logga in för att skicka en ny anmälan eller följa upp befintliga ärenden.</p>
+
+      <div class="form-group">
+        <label for="emp-email">E-postadress</label>
+        <input type="email" id="emp-email" placeholder="ditt.namn@jenseneducation.se" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label for="emp-pw">Lösenord</label>
+        <input type="password" id="emp-pw" placeholder="Ditt lösenord" autocomplete="current-password">
+      </div>
+
+      <div class="error-msg" id="emp-err"></div>
+      <button id="btn-emp-login" class="btn btn-gold btn-full" onclick="handleEmpLogin()">Logga in</button>
+      <p class="form-link">
+        Inget konto? <a href="#" onclick="showEmpRegister();return false;">Skapa ett här</a>
+        &nbsp;·&nbsp;
+        <a href="#" onclick="handleForgotPassword();return false;">Glömt lösenord?</a>
+      </p>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- RESET PASSWORD (länk från mejl)                       -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="view" id="view-reset-password">
+    <div class="form-wrap">
+      <h1>Välj nytt lösenord</h1>
+      <p class="form-subtitle">Ange ett nytt lösenord för ditt JENSEN-konto.</p>
+      <div class="form-group">
+        <label for="new-pw">Nytt lösenord</label>
+        <input type="password" id="new-pw" placeholder="Minst 8 tecken" autocomplete="new-password">
+      </div>
+      <div class="form-group">
+        <label for="new-pw2">Bekräfta lösenord</label>
+        <input type="password" id="new-pw2" placeholder="Upprepa lösenordet" autocomplete="new-password">
+      </div>
+      <div class="error-msg" id="reset-err"></div>
+      <button id="btn-set-pw" class="btn btn-gold btn-full" onclick="handleSetNewPassword()">Spara nytt lösenord</button>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- ADMIN LOGIN                                            -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="view" id="view-admin-login">
+    <div class="form-wrap">
+      <button class="btn-back" onclick="showLanding('admin')">← Tillbaka</button>
+      <h1>Admin-inloggning</h1>
+      <p class="form-subtitle">Portal för HR, chefer och administratörer.</p>
+
+      <div class="form-group">
+        <label for="admin-email">Jobbmail</label>
+        <input type="email" id="admin-email" placeholder="t.ex. rikard.ostrup@jenseneducation.se" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label for="admin-pw">Lösenord</label>
+        <input type="password" id="admin-pw" placeholder="Ditt lösenord" autocomplete="current-password">
+      </div>
+
+      <div class="error-msg" id="admin-err"></div>
+      <button id="btn-admin-login" class="btn btn-gold btn-full" onclick="handleAdminLogin()">Logga in</button>
+
+      <div class="admin-hint">
+        <strong>Kontakta Dennis om du saknar inloggningsuppgifter.</strong>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- EMPLOYEE DASHBOARD                                     -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="view" id="view-emp-dash">
+    <div class="dash-wrap">
+      <div class="dash-head">
+        <div>
+          <h1>Mina ärenden</h1>
+          <p>Ditt anonyma ID: <span id="emp-token" class="token"></span></p>
+        </div>
+        <button class="btn btn-gold" onclick="showNewCase()">+ Ny anmälan</button>
+      </div>
+
+      <div class="sub-tabs">
+        <button class="sub-tab active" data-stab="all"      onclick="showEmpDash('all')">Alla</button>
+        <button class="sub-tab"        data-stab="open"     onclick="showEmpDash('open')">Pågående</button>
+        <button class="sub-tab"        data-stab="resolved" onclick="showEmpDash('resolved')">Avslutade</button>
+      </div>
+
+      <div id="emp-cases-list" class="cases-list"></div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- NEW CASE                                               -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="view" id="view-new-case">
+    <div class="form-wrap form-wrap-wide">
+      <button class="btn-back" onclick="showEmpDash()">← Tillbaka till mina ärenden</button>
+      <h1>Skicka ny anmälan</h1>
+      <p class="form-subtitle">
+        Ditt meddelande skickas anonymt. Mottagaren ser enbart ditt anonyma ärendenummer –
+        aldrig ditt namn eller din e-post.
+      </p>
+
+      <div class="notice notice-blue">
+        🔒 Din identitet är fullständigt skyddad. Inkludera inte ditt namn om det inte är nödvändigt.
+      </div>
+
+      <form id="new-case-form" onsubmit="return false;">
+        <div class="form-group">
+          <label>Välj mottagare</label>
+          <div id="recipient-grid" class="recipient-grid"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="cat-sel">Kategori</label>
+          <select id="cat-sel">
+            <option value="">Välj kategori…</option>
+            <option value="harassment">Trakasserier / Mobbning</option>
+            <option value="discrimination">Diskriminering</option>
+            <option value="safety">Arbetsmiljö &amp; säkerhet</option>
+            <option value="fraud">Ekonomiska oegentligheter</option>
+            <option value="corruption">Korruption / Mutor</option>
+            <option value="compliance">Lagstiftning / Regelefterlevnad</option>
+            <option value="other">Övrigt</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="case-msg">Din anmälan</label>
+          <textarea id="case-msg" placeholder="Beskriv situationen i detalj. Inkludera datum, plats och eventuella vittnen om relevant. Undvik att nämna ditt eget namn om det inte är absolut nödvändigt."></textarea>
+        </div>
+
+        <div class="error-msg" id="nc-err"></div>
+        <button id="btn-create-case" class="btn btn-gold btn-full" onclick="handleCreateCase()">Skicka anmälan anonymt</button>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- CASE DETAIL – Employee                                 -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="view" id="view-case-emp">
+    <div class="chat-wrap">
+      <div class="chat-head">
+        <button class="btn-back" onclick="showEmpDash()">← Tillbaka</button>
+        <div class="chat-head-info">
+          <div>Ärende: <span id="c-token" class="token"></span></div>
+          <div style="font-size:13px;color:var(--muted);">Till: <strong id="c-to"></strong></div>
+        </div>
+        <div class="chat-meta">
+          <span id="c-cat" style="font-size:12px;background:var(--bg-alt);padding:3px 10px;border-radius:4px;color:var(--muted);"></span>
+          <span id="c-status" class="status-pill"></span>
+        </div>
+      </div>
+
+      <div class="msgs" id="emp-msgs"></div>
+
+      <div class="reply-area">
+        <div class="reply-col">
+          <textarea id="emp-reply-input" rows="2" placeholder="Skriv ditt svar… (Ctrl+Enter för att skicka)"></textarea>
+          <div class="error-msg" id="emp-reply-err"></div>
+        </div>
+        <button id="btn-emp-reply" class="btn btn-gold" onclick="handleEmpReply()">Skicka</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- ADMIN DASHBOARD                                        -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="view" id="view-admin-dash">
+    <div class="dash-wrap">
+      <div class="dash-head">
+        <div>
+          <h1>Inkomna ärenden</h1>
+          <p id="admin-name" style="font-weight:700;"></p>
+          <p id="admin-title" style="color:var(--muted);font-size:13px;"></p>
+        </div>
+      </div>
+
+      <div class="notice notice-green">
+        🔒 Alla anmälare är helt anonyma. Du kan enbart se deras ärendenummer – aldrig deras identitet.
+      </div>
+
+      <div id="admin-cases-list" class="cases-list"></div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- CASE DETAIL – Admin                                    -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="view" id="view-case-admin">
+    <div class="chat-wrap">
+      <div class="chat-head">
+        <button class="btn-back" onclick="showAdminDash()">← Tillbaka</button>
+        <div class="chat-head-info">
+          <div>Ärende: <span id="ac-token" class="token"></span></div>
+          <div style="font-size:13px;color:var(--muted);">Kategori: <span id="ac-cat"></span></div>
+        </div>
+        <div class="status-sel-row">
+          Status:
+          <select id="ac-status-sel" onchange="handleStatusChange()">
+            <option value="open">Öppen</option>
+            <option value="investigating">Under utredning</option>
+            <option value="resolved">Avslutad</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="notice notice-amber" style="margin:0 0 12px;">
+        🔒 Denna anmälare är anonym. Deras verkliga identitet är inte tillgänglig för dig och kan inte spåras.
+      </div>
+
+      <div class="msgs" id="admin-msgs"></div>
+
+      <div class="reply-area">
+        <div class="reply-col">
+          <textarea id="admin-reply-input" rows="2" placeholder="Skriv ditt svar… (Ctrl+Enter för att skicka)"></textarea>
+          <div class="error-msg" id="admin-reply-err"></div>
+        </div>
+        <button id="btn-admin-reply" class="btn btn-gold" onclick="handleAdminReply()">Skicka svar</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
