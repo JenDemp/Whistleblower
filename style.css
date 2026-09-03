@@ -578,11 +578,32 @@ a:hover { text-decoration: underline; }
 }
 .contact-name {
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--navy);
+  margin-bottom: 3px;
+}
+.contact-role {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+.contact-phone {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
   margin-bottom: 4px;
 }
+.contact-email {
+  display: block;
+  font-size: 12px;
+  color: var(--gold);
+  word-break: break-all;
+  margin-bottom: 10px;
+  text-decoration: none;
+}
+.contact-email:hover { text-decoration: underline; }
 /* ── LAW CARDS ───────────────────────────── */
 .skydd-panel { text-align: left; max-width: 1000px; }
 .skydd-panel h1, .skydd-panel .lead { text-align: center; }
