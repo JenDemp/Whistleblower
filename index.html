@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>JENSEN education – Visselblåsartjänst</title>
+  <title>JENSEN Whistleblower</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -15,7 +15,7 @@
       <img class="logo-img" src="https://www.jenseneducation.se/themes/custom/jensen/css/graphics/logo-gold-jensen-education.svg" alt="JENSEN education">
       <div class="logo-wordmark">
         <span class="logo-jensen">JENSEN</span>
-        <span class="logo-subtitle">Visselblåsartjänst</span>
+        <span class="logo-subtitle">Whistleblower</span>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:16px;">
@@ -27,15 +27,10 @@
 
 <!-- ── TAB NAVIGATION ─────────────────────────────────────── -->
 <nav id="tab-nav">
-  <button class="tab-btn active" data-tab="anmal" onclick="handleTab('anmal')">
-    📝&nbsp; Anmäl ärende
-  </button>
-  <button class="tab-btn" data-tab="mina" onclick="handleTab('mina')">
-    📋&nbsp; Mina ärenden
-  </button>
-  <button class="tab-btn" data-tab="admin" onclick="handleTab('admin')">
-    🔒&nbsp; HR &amp; Admin
-  </button>
+  <button class="tab-btn active" data-tab="anmal" onclick="handleTab('anmal')">Anmäl ärende</button>
+  <button class="tab-btn" data-tab="mina" onclick="handleTab('mina')">Mina ärenden</button>
+  <button class="tab-btn" data-tab="kontakter" onclick="handleTab('kontakter')">Kontakter</button>
+  <button class="tab-btn" data-tab="admin" onclick="handleTab('admin')">HR &amp; Admin</button>
 </nav>
 
 <main>
@@ -110,6 +105,50 @@
         </div>
       </div>
     </div>
+    <!-- Panel: Kontakter -->
+    <div class="tab-panel" id="panel-kontakter">
+      <div class="landing-panel kontakter-panel">
+        <h1><em>Kontakta</em> HR &amp; ledning</h1>
+        <p class="lead">Vill du ta direkt kontakt med HR eller din chef? Nedan hittar du kontaktuppgifter. Kom ihåg att du alltid kan anmäla anonymt via fliken "Anmäl ärende".</p>
+
+        <div class="contact-grid">
+
+          <div class="contact-card">
+            <img src="Pictures_of_HR_contacts/Rikard_HR.png" alt="Rikard Östrup">
+            <div class="contact-info">
+              <div class="contact-name">Rikard Östrup</div>
+              <div class="contact-title">HR-partner</div>
+              <span class="r-badge badge-hr">HR</span>
+            </div>
+          </div>
+
+          <div class="contact-card">
+            <img src="Pictures_of_HR_contacts/Leif_Boss.png" alt="Leif Glavå">
+            <div class="contact-info">
+              <div class="contact-name">Leif Glavå</div>
+              <div class="contact-title">Kvalitets- och utvecklingschef</div>
+              <span class="r-badge badge-mgmt">Ledning</span>
+            </div>
+          </div>
+
+          <div class="contact-card">
+            <img src="Pictures_of_HR_contacts/Ulrika_boss.png" alt="Ulrika">
+            <div class="contact-info">
+              <div class="contact-name">Ulrika</div>
+              <div class="contact-title">Chef</div>
+              <span class="r-badge badge-mgmt">Ledning</span>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="trust-items" style="margin-top:40px;">
+          <div class="trust-item"><span class="trust-icon">🔒</span><span>Vill du vara anonym? Använd "Anmäl ärende"</span></div>
+          <div class="trust-item"><span class="trust-icon">⚖️</span><span>Du är skyddad av visselblåsarlagen</span></div>
+        </div>
+      </div>
+    </div>
+
   </div><!-- /view-landing -->
 
 

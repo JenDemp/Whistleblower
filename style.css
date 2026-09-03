@@ -98,21 +98,21 @@ a:hover { text-decoration: underline; }
   background: transparent;
   border: none;
   border-bottom: 3px solid transparent;
-  color: rgba(255,255,255,.55);
+  color: rgba(255,255,255,.75);
   font-size: 13px;
   font-weight: 600;
-  letter-spacing: .5px;
+  letter-spacing: 1px;
   text-transform: uppercase;
   cursor: pointer;
-  padding: 14px 30px;
+  padding: 16px 28px;
   transition: all .2s;
   display: flex;
   align-items: center;
   gap: 7px;
 }
-.tab-btn:hover { color: rgba(255,255,255,.85); }
+.tab-btn:hover { color: #fff; }
 .tab-btn.active {
-  color: var(--gold);
+  color: #fff;
   border-bottom-color: var(--gold);
 }
 .tab-dot {
@@ -539,6 +539,51 @@ a:hover { text-decoration: underline; }
   padding: 1px 5px;
   border-radius: 3px;
   font-size: 12px;
+}
+
+/* ── CONTACT CARDS ───────────────────────── */
+.kontakter-panel { text-align: center; max-width: 1000px; }
+.contact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 28px;
+  margin-top: 40px;
+}
+.contact-card {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  transition: box-shadow .2s, border-color .2s;
+  text-align: center;
+}
+.contact-card:hover {
+  border-color: var(--gold);
+  box-shadow: 0 6px 24px rgba(0,0,0,.10);
+}
+.contact-card img {
+  width: 100%;
+  aspect-ratio: 3/4;
+  object-fit: cover;
+  object-position: top;
+  display: block;
+}
+.contact-info {
+  padding: 18px 20px 22px;
+}
+.contact-name {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 4px;
+}
+.contact-title {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 10px;
+  line-height: 1.4;
 }
 
 /* ── DIVIDER ─────────────────────────────── */
