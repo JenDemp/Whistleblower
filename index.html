@@ -18,20 +18,21 @@
         <span class="logo-subtitle">Whistleblower</span>
       </div>
     </div>
+
+    <nav id="tab-nav">
+      <button class="tab-btn active" data-tab="anmal" onclick="handleTab('anmal')">Anmäl ärende</button>
+      <button class="tab-btn" data-tab="mina" onclick="handleTab('mina')">Mina ärenden</button>
+      <button class="tab-btn" data-tab="kontakter" onclick="handleTab('kontakter')">Kontakter</button>
+      <button class="tab-btn" data-tab="skydd" onclick="handleTab('skydd')">Dina rättigheter</button>
+      <button class="tab-btn" data-tab="admin" onclick="handleTab('admin')">HR &amp; Admin</button>
+    </nav>
+
     <div style="display:flex;align-items:center;gap:16px;">
       <div id="header-profile" style="display:none;"></div>
       <button id="btn-logout" class="btn btn-outline" style="display:none;">Logga ut</button>
     </div>
   </div>
 </header>
-
-<!-- ── TAB NAVIGATION ─────────────────────────────────────── -->
-<nav id="tab-nav">
-  <button class="tab-btn active" data-tab="anmal" onclick="handleTab('anmal')">Anmäl ärende</button>
-  <button class="tab-btn" data-tab="mina" onclick="handleTab('mina')">Mina ärenden</button>
-  <button class="tab-btn" data-tab="kontakter" onclick="handleTab('kontakter')">Kontakter</button>
-  <button class="tab-btn" data-tab="admin" onclick="handleTab('admin')">HR &amp; Admin</button>
-</nav>
 
 <main>
 
@@ -111,8 +112,8 @@
         <h1><em>Kontakta</em> HR &amp; ledning</h1>
         <p class="lead">Vill du ta direkt kontakt med HR eller din chef? Nedan hittar du kontaktuppgifter. Kom ihåg att du alltid kan anmäla anonymt via fliken "Anmäl ärende".</p>
 
-        <div class="contact-grid">
-
+        <p class="contact-section-label">HR</p>
+        <div class="contact-grid contact-grid-hr">
           <div class="contact-card">
             <img src="Pictures_of_HR_contacts/Rikard_HR.png" alt="Rikard Östrup">
             <div class="contact-info">
@@ -121,7 +122,18 @@
               <span class="r-badge badge-hr">HR</span>
             </div>
           </div>
+          <div class="contact-card">
+            <img src="Pictures_of_HR_contacts/Irina_HR.png" alt="Irina">
+            <div class="contact-info">
+              <div class="contact-name">Irina</div>
+              <div class="contact-title">HR</div>
+              <span class="r-badge badge-hr">HR</span>
+            </div>
+          </div>
+        </div>
 
+        <p class="contact-section-label" style="margin-top:40px;">Ledning</p>
+        <div class="contact-grid contact-grid-mgmt">
           <div class="contact-card">
             <img src="Pictures_of_HR_contacts/Leif_Boss.png" alt="Leif Glavå">
             <div class="contact-info">
@@ -130,7 +142,6 @@
               <span class="r-badge badge-mgmt">Ledning</span>
             </div>
           </div>
-
           <div class="contact-card">
             <img src="Pictures_of_HR_contacts/Ulrika_boss.png" alt="Ulrika">
             <div class="contact-info">
@@ -139,12 +150,77 @@
               <span class="r-badge badge-mgmt">Ledning</span>
             </div>
           </div>
-
         </div>
 
         <div class="trust-items" style="margin-top:40px;">
           <div class="trust-item"><span class="trust-icon">🔒</span><span>Vill du vara anonym? Använd "Anmäl ärende"</span></div>
           <div class="trust-item"><span class="trust-icon">⚖️</span><span>Du är skyddad av visselblåsarlagen</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel: Skydd / Dina rättigheter -->
+    <div class="tab-panel" id="panel-skydd">
+      <div class="landing-panel skydd-panel">
+        <h1><em>Dina</em> rättigheter</h1>
+        <p class="lead">Lag (2021:890) om skydd för personer som rapporterar om missförhållanden — en sammanfattning av vad lagen innebär för dig som anställd på JENSEN.</p>
+
+        <div class="law-grid">
+
+          <div class="law-card">
+            <div class="law-icon">🛡️</div>
+            <h3>Vem skyddas?</h3>
+            <p>Du skyddas om du är anställd, praktikant, volontär, konsult eller f.d. anställd hos JENSEN. Skyddet gäller även den som sökt ett jobb och rapporterar om missförhållanden de fått kännedom om under rekryteringsprocessen.</p>
+          </div>
+
+          <div class="law-card">
+            <div class="law-icon">📋</div>
+            <h3>Vad kan rapporteras?</h3>
+            <p>Missförhållanden av allmänintresse – till exempel brott mot lagar och regler, korruption, säkerhetsrisker, diskriminering, trakasserier eller andra allvarliga oegentligheter inom organisationen.</p>
+          </div>
+
+          <div class="law-card">
+            <div class="law-icon">🚫</div>
+            <h3>Förbjudna repressalier</h3>
+            <p>Arbetsgivaren får <strong>inte</strong> vidta åtgärder som bestraffar dig för att du rapporterat. Förbudet gäller uppsägning, degradering, lönesänkning, förändrade arbetsuppgifter, trakasserier, negativt omdöme eller utfrysning.</p>
+          </div>
+
+          <div class="law-card">
+            <div class="law-icon">⚖️</div>
+            <h3>Omvänd bevisbörda</h3>
+            <p>Om du påstår att du utsatts för repressalier på grund av din rapport, är det <strong>arbetsgivaren</strong> som måste bevisa att åtgärden inte hade något samband med din rapportering – inte du.</p>
+          </div>
+
+          <div class="law-card">
+            <div class="law-icon">🔒</div>
+            <h3>Anonymitet och sekretess</h3>
+            <p>Din identitet ska skyddas i rapporteringsprocessen. Intern personal som hanterar ärenden är bunden av tystnadsplikt och får inte röja vem som lämnat rapporten.</p>
+          </div>
+
+          <div class="law-card">
+            <div class="law-icon">⏱️</div>
+            <h3>Tidsfrister för svar</h3>
+            <p>Organisationen ska bekräfta att din rapport mottagits inom <strong>7 dagar</strong>. Du ska sedan få återkoppling om ärendets handläggning och utfall inom <strong>3 månader</strong>.</p>
+          </div>
+
+          <div class="law-card">
+            <div class="law-icon">📣</div>
+            <h3>Tre rapporteringsvägar</h3>
+            <p><strong>1. Internt</strong> – via denna tjänst direkt till HR/ledning.<br>
+               <strong>2. Externt</strong> – till behörig tillsynsmyndighet (t.ex. Arbetsmiljöverket, Ekobrottsmyndigheten).<br>
+               <strong>3. Offentliggörande</strong> – till media, som sista utväg om de andra kanalerna inte fungerat.</p>
+          </div>
+
+          <div class="law-card">
+            <div class="law-icon">💰</div>
+            <h3>Skadestånd</h3>
+            <p>Om du utsätts för repressalier i strid med lagen har du rätt till skadestånd – både för ekonomisk förlust och för kränkning. Arbetsgivaren kan även dömas att betala allmänt skadestånd.</p>
+          </div>
+
+        </div>
+
+        <div class="law-footer">
+          <p>Fullständig lagtext: <a href="https://www.riksdagen.se/sv/dokument-och-lagar/dokument/svensk-forfattningssamling/lag-2021890-om-skydd-for-personer-som_sfs-2021-890/" target="_blank" rel="noopener">SFS 2021:890 på riksdagen.se</a></p>
         </div>
       </div>
     </div>
