@@ -118,8 +118,6 @@ async function handleSendCode() {
   const pw2   = val('reg-pw2');
 
   if (!email || !pw)  return err('reg-err', 'Fyll i alla fält.');
-  if (!email.endsWith('@jenseneducation.se'))
-    return err('reg-err', 'Endast e-postadresser från @jenseneducation.se är tillåtna.');
   if (pw !== pw2)     return err('reg-err', 'Lösenorden matchar inte.');
   if (pw.length < 8)  return err('reg-err', 'Lösenordet måste vara minst 8 tecken.');
 
@@ -160,8 +158,6 @@ function resetRegForm() {
 async function handleForgotPassword() {
   const email = val('emp-email');
   if (!email) return err('emp-err', 'Ange din e-postadress ovan och klicka sedan på "Glömt lösenord?".');
-  if (!email.toLowerCase().endsWith('@jenseneducation.se'))
-    return err('emp-err', 'Ange din @jenseneducation.se-adress.');
 
   const { error } = await sb.auth.resetPasswordForEmail(email, {
     redirectTo: window.location.href
@@ -198,8 +194,6 @@ async function handleEmpLogin() {
   const email = val('emp-email');
   const pw    = val('emp-pw');
   if (!email || !pw) return err('emp-err', 'Fyll i alla fält.');
-  if (!email.toLowerCase().endsWith('@jenseneducation.se'))
-    return err('emp-err', 'Endast e-postadresser från @jenseneducation.se är tillåtna.');
 
   setBusy('btn-emp-login', true);
   const { error } = await sb.auth.signInWithPassword({ email, password: pw });
@@ -345,6 +339,7 @@ async function handleCreateCase() {
   setBusy('btn-create-case', false);
   if (msgErr) return err('nc-err', msgErr.message);
 
+  sb.functions.invoke('notify', { body: { type: 'new_case', case_id: caseRow.id } });
   await showEmpDash();
 }
 
@@ -377,6 +372,7 @@ async function handleEmpReply() {
   });
   setBusy('btn-emp-reply', false);
   if (error) return err('emp-reply-err', error.message);
+  sb.functions.invoke('notify', { body: { type: 'employee_reply', case_id: activeCaseId } });
   document.getElementById('emp-reply-input').value = '';
   clearErrors();
   const { data: msgs } = await sb.from('messages').select('*')
@@ -461,6 +457,7 @@ async function handleAdminReply() {
   });
   setBusy('btn-admin-reply', false);
   if (error) return err('admin-reply-err', error.message);
+  sb.functions.invoke('notify', { body: { type: 'admin_reply', case_id: activeCaseId } });
   document.getElementById('admin-reply-input').value = '';
   clearErrors();
   const { data: msgs } = await sb.from('messages').select('*')
