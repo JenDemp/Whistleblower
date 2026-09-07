@@ -417,34 +417,37 @@ create policy "Attachments storage: anonym uppladdning"
 -- 16. Ny roll-flagga på admins
 alter table public.admins add column if not exists is_super_admin boolean not null default false;
 
--- 17. Ta bort en-till-en-routning – alla ärenden syns nu för alla admins
+-- 17. Släpp GAMLA policies FÖRST (de pekar på recipient_admin_id,
+-- så kolumnen kan inte droppas medan de finns kvar)
+drop policy if exists "Cases: admin läser tilldelade" on public.cases;
+drop policy if exists "Cases: admin uppdaterar status" on public.cases;
+drop policy if exists "Messages: admin" on public.messages;
+drop policy if exists "Attachments: admin" on public.attachments;
+drop policy if exists "Attachments storage: admin läser" on storage.objects;
+
+-- 18. NU kan en-till-en-routningen tas bort – alla ärenden syns för alla admins
 alter table public.cases drop column if exists recipient_admin_id;
 
--- 18. RLS: vilken admin som helst får läsa/uppdatera alla ärenden
-drop policy if exists "Cases: admin läser tilldelade" on public.cases;
+-- 19. Nya policies: vilken admin som helst får läsa/uppdatera alla ärenden
 create policy "Cases: admin läser alla" on public.cases
   for select using (exists (select 1 from public.admins a where a.id = auth.uid()));
 
-drop policy if exists "Cases: admin uppdaterar status" on public.cases;
 create policy "Cases: admin uppdaterar status" on public.cases
   for update using (exists (select 1 from public.admins a where a.id = auth.uid()));
 
-drop policy if exists "Messages: admin" on public.messages;
 create policy "Messages: admin" on public.messages
   for all using (exists (select 1 from public.admins a where a.id = auth.uid()));
 
-drop policy if exists "Attachments: admin" on public.attachments;
 create policy "Attachments: admin" on public.attachments
   for all using (exists (select 1 from public.admins a where a.id = auth.uid()));
 
-drop policy if exists "Attachments storage: admin läser" on storage.objects;
 create policy "Attachments storage: admin läser" on storage.objects
   for select using (
     bucket_id = 'case-attachments' and
     exists (select 1 from public.admins a where a.id = auth.uid())
   );
 
--- 19. create_anonymous_case: p_recipient_admin_id tas bort (fanns i
+-- 20. create_anonymous_case: p_recipient_admin_id tas bort (fanns i
 -- den gamla signaturen, så funktionen måste droppas innan den skapas om)
 drop function if exists public.create_anonymous_case(text,text,text,text,text,text,text,text,uuid,text);
 
@@ -494,7 +497,7 @@ $$;
 
 grant execute on function public.create_anonymous_case to anon, authenticated;
 
--- 20. get_case_by_code: admin_name fanns bara för att visa VEM
+-- 21. get_case_by_code: admin_name fanns bara för att visa VEM
 -- ärendet gick till — det konceptet finns inte längre (delad inkorg)
 drop function if exists public.get_case_by_code(text);
 
