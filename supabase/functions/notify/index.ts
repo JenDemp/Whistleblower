@@ -38,8 +38,8 @@ serve(async (req) => {
   // No auth requirement here on purpose: fully anonymous reporters (tier 1)
   // have no session at all, yet still need admins notified. Safety instead
   // comes from case_id being an unguessable UUID and this function only ever
-  // emailing the case's own pre-assigned admin/employee via the service role
-  // — the caller's identity is never trusted for anything sensitive.
+  // emailing addresses it looks up itself via the service role — the
+  // caller's identity is never trusted for anything sensitive.
   const sbAdmin = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -49,16 +49,21 @@ serve(async (req) => {
 
   const { data: c } = await sbAdmin
     .from('cases')
-    .select('id, anonymous_token, category, recipient_admin_id, employee_id')
+    .select('id, anonymous_token, category, employee_id')
     .eq('id', case_id)
     .single()
 
   if (!c) return new Response('Case not found', { status: 404 })
 
-  // ── Notify admin: new case or employee reply ───────────────────
+  // ── Notify admins: new case or employee reply ───────────────────
+  // Shared inbox — every regular admin gets notified. Super-admins
+  // (Dennis) are deliberately excluded; they can still see everything
+  // by logging in, they just don't get flooded with case emails.
   if (type === 'new_case' || type === 'employee_reply') {
-    const { data: { user: admin } } = await sbAdmin.auth.admin.getUserById(c.recipient_admin_id)
-    if (!admin?.email) return new Response('OK', { status: 200 })
+    const { data: admins } = await sbAdmin
+      .from('admins')
+      .select('id')
+      .eq('is_super_admin', false)
 
     const isNew = type === 'new_case'
     const subject = isNew
@@ -73,7 +78,10 @@ serve(async (req) => {
       ${loginButton()}
     `)
 
-    await sendEmail(admin.email, subject, html)
+    for (const admin of admins || []) {
+      const { data: { user } } = await sbAdmin.auth.admin.getUserById(admin.id)
+      if (user?.email) await sendEmail(user.email, subject, html)
+    }
   }
 
   // ── Notify employee: admin replied ─────────────────────────────
@@ -81,14 +89,14 @@ serve(async (req) => {
     const { data: { user: emp } } = await sbAdmin.auth.admin.getUserById(c.employee_id)
     if (!emp?.email) return new Response('OK', { status: 200 })
 
-    // TODO(human): implement the email body the employee receives when HR/admin replies.
-    // The subject and html variables need to be set here.
-    // Guidance: keep it brief, don't reveal who replied or any case details (privacy),
-    // just tell them they have a reply and give them the login button. ~4-6 lines of HTML.
-    const subject = ''
-    const html = ''
+    const subject = 'Du har fått ett svar – JENSEN Whistleblower'
+    const html = emailWrapper(`
+      <h2 style="color:#1e3246;font-size:20px;margin:0 0 12px;">Du har fått ett svar</h2>
+      <p style="color:#444;">En handläggare har svarat på ditt ärende. Logga in för att läsa svaret.</p>
+      ${loginButton()}
+    `)
 
-    if (subject && html) await sendEmail(emp.email, subject, html)
+    await sendEmail(emp.email, subject, html)
   }
 
   return new Response(JSON.stringify({ ok: true }), {

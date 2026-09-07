@@ -386,7 +386,6 @@
         <button class="btn-back" onclick="show('view-anon-code-entry')" data-i18n="back.code">← Tillbaka</button>
         <div class="chat-head-info">
           <div><span data-i18n="anonCase.case">Ärende:</span> <span id="anon-token" class="token"></span></div>
-          <div style="font-size:13px;color:var(--muted);"><span data-i18n="anonCase.to">Till:</span> <strong id="anon-to"></strong></div>
         </div>
         <div class="chat-meta">
           <span id="anon-cat" style="font-size:12px;background:var(--bg-alt);padding:3px 10px;border-radius:4px;color:var(--muted);"></span>
@@ -446,11 +445,6 @@
       </p>
 
       <form id="new-case-form" onsubmit="return false;">
-        <div class="form-group">
-          <label data-i18n="reportForm.recipient">Välj mottagare</label>
-          <div id="recipient-grid" class="recipient-grid"></div>
-        </div>
-
         <div class="form-row">
           <div class="form-group">
             <label for="cat-sel" data-i18n="reportForm.category">Kategori</label>
@@ -566,7 +560,6 @@
         <button class="btn-back" onclick="showEmpDash()" data-i18n="back.dash">← Tillbaka</button>
         <div class="chat-head-info">
           <div><span data-i18n="anonCase.case">Ärende:</span> <span id="c-token" class="token"></span></div>
-          <div style="font-size:13px;color:var(--muted);"><span data-i18n="anonCase.to">Till:</span> <strong id="c-to"></strong></div>
         </div>
         <div class="chat-meta">
           <span id="c-cat" style="font-size:12px;background:var(--bg-alt);padding:3px 10px;border-radius:4px;color:var(--muted);"></span>

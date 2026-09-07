@@ -9,7 +9,6 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let me            = null;   // { id, email, reporterType, name?, phone?, title?, photo? }
 let meType        = null;   // 'employee' | 'admin'
 let activeCaseId  = null;
-let selectedRecip = null;
 let activeDashTab = 'all';
 
 let reportType    = null;   // 'anonymous_code' | 'anonymous_email' | 'open' — for the report currently being created
@@ -33,9 +32,10 @@ function updateHeader() {
   if (me && meType === 'admin') {
     logoutBtn.style.display = 'inline-flex';
     adminLink.style.display = 'none';
+    const roleLine = (me.isSuperAdmin ? 'SUPER-ADMIN · ' : '') + (me.title || '');
     profileEl.innerHTML = me.photo
-      ? `<div class="admin-profile"><img src="${me.photo}" alt="${me.name}"><div><div class="a-name">${me.name}</div><div class="a-role">${me.title||''}</div></div></div>`
-      : `<div class="admin-profile"><div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;color:var(--gold);font-weight:700;font-size:16px;border:2px solid var(--gold);">${(me.name||'?').charAt(0)}</div><div><div class="a-name">${me.name}</div><div class="a-role">${me.title||''}</div></div></div>`;
+      ? `<div class="admin-profile"><img src="${me.photo}" alt="${me.name}"><div><div class="a-name">${me.name}</div><div class="a-role">${roleLine}</div></div></div>`
+      : `<div class="admin-profile"><div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;color:var(--gold);font-weight:700;font-size:16px;border:2px solid var(--gold);">${(me.name||'?').charAt(0)}</div><div><div class="a-name">${me.name}</div><div class="a-role">${roleLine}</div></div></div>`;
     profileEl.style.display = 'block';
   } else if (me && meType === 'employee') {
     logoutBtn.style.display = 'inline-flex';
@@ -59,7 +59,7 @@ sb.auth.onAuthStateChange(async (event, session) => {
   } else if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
     await loadUserContext(session);
   } else if (event === 'SIGNED_OUT') {
-    me = null; meType = null; activeCaseId = null; selectedRecip = null; reportType = null;
+    me = null; meType = null; activeCaseId = null; reportType = null;
     showLanding();
   } else if (event === 'INITIAL_SESSION' && !session) {
     showLanding();
@@ -70,7 +70,7 @@ async function loadUserContext(session) {
   try {
     const { data: profile, error } = await sb
       .from('profiles')
-      .select('reporter_type, is_admin, name, phone, admins(id, name, title, role, photo)')
+      .select('reporter_type, is_admin, name, phone, admins(id, name, title, role, photo, is_super_admin)')
       .eq('id', session.user.id)
       .single();
     if (error) throw error;
@@ -82,6 +82,7 @@ async function loadUserContext(session) {
       me.name  = profile.admins.name;
       me.title = profile.admins.title;
       me.photo = profile.admins.photo;
+      me.isSuperAdmin = !!profile.admins.is_super_admin;
       await showAdminDash();
     } else {
       meType = 'employee';
@@ -299,7 +300,6 @@ async function handleAdminLogin() {
 
 // ── NEW CASE / REPORT FORM (delas av alla tre typer) ────────────
 async function showNewCase() {
-  selectedRecip = null;
   pendingFiles = [];
   document.getElementById('new-case-form').reset();
   document.getElementById('nc-files-list').innerHTML = '';
@@ -308,30 +308,7 @@ async function showNewCase() {
   document.getElementById('reportform-subtitle').textContent =
     reportType === 'open' ? t('reportForm.subtitleOpen') : t('reportForm.subtitleAnon');
 
-  const grid = document.getElementById('recipient-grid');
-  grid.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:8px;">${t('common.loading')}</div>`;
   show('view-new-case');
-
-  const { data: admins } = await sb.from('admins').select('*');
-  grid.innerHTML = '';
-  (admins || []).forEach(a => {
-    const div = el('div', 'r-card');
-    div.dataset.id = a.id;
-    const avatarHtml = a.photo
-      ? `<img src="${a.photo}" alt="${a.name}" onerror="this.parentElement.innerHTML='<div class=\\'r-avatar-placeholder\\'>👤</div>'">`
-      : `<div class="r-avatar-placeholder">👤</div>`;
-    div.innerHTML = `
-      ${avatarHtml}
-      <div class="r-name">${a.name}</div>
-      <div class="r-title">${a.title}</div>
-      <span class="r-badge ${a.role === 'HR' ? 'badge-hr' : a.role === 'Admin' ? 'badge-admin' : 'badge-mgmt'}">${a.role}</span>`;
-    div.addEventListener('click', () => {
-      selectedRecip = a.id;
-      document.querySelectorAll('.r-card').forEach(c => c.classList.remove('selected'));
-      div.classList.add('selected');
-    });
-    grid.appendChild(div);
-  });
 }
 
 function handleReportFormBack() {
@@ -415,7 +392,6 @@ async function handleCreateCase() {
   const dept     = val('dept-sel');
   const message  = val('case-msg');
 
-  if (!selectedRecip)  return err('nc-err', t('err.chooseRecipient'));
   if (!category)       return err('nc-err', t('err.chooseCategory'));
   if (!dept)            return err('nc-err', t('err.chooseDept'));
   if (!message || message.length < 10) return err('nc-err', t('err.messageShort'));
@@ -434,8 +410,7 @@ async function handleCreateCase() {
       p_category: category, p_department: dept, p_department_detail: deptDetail,
       p_who_involved: who || null, p_where_happened: where || null,
       p_when_happened: when || null, p_what_happened: what || null,
-      p_other_actions: actions || null,
-      p_recipient_admin_id: selectedRecip, p_message: message
+      p_other_actions: actions || null, p_message: message
     });
     setBusy('btn-create-case', false);
     if (error || !data || !data[0]) return err('nc-err', (error && error.message) || t('err.generic'));
@@ -451,7 +426,6 @@ async function handleCreateCase() {
   const insertPayload = {
     reporter_type: reportType,
     employee_id: me.id,
-    recipient_admin_id: selectedRecip,
     category, department: dept, department_detail: deptDetail,
     who_involved: who || null, where_happened: where || null,
     when_happened: when || null, what_happened: what || null, other_actions: actions || null,
@@ -511,9 +485,6 @@ async function showEmpDash(filter) {
   const { data: cases, error } = await q;
   if (error) { list.innerHTML = `<div class="empty-state">Fel: ${error.message}</div>`; return; }
 
-  const { data: admins } = await sb.from('admins').select('id, name');
-  const adminMap = Object.fromEntries((admins || []).map(a => [a.id, a]));
-
   list.innerHTML = '';
   if (!cases || !cases.length) {
     list.innerHTML = `<div class="empty-state">${activeDashTab === 'all' ? t('dash.emptyAll') : t('dash.emptyFiltered')}</div>`;
@@ -521,7 +492,6 @@ async function showEmpDash(filter) {
   }
 
   cases.forEach(c => {
-    const admin   = adminMap[c.recipient_admin_id];
     const msgs    = (c.messages || []).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
     const lastMsg = msgs.at(-1);
     const unread  = lastMsg && lastMsg.from_role === 'admin';
@@ -534,7 +504,6 @@ async function showEmpDash(filter) {
         <span class="status-pill s-${c.status}">${t('status.' + c.status)}</span>
       </div>
       <div class="case-meta">
-        <span>${t('anonCase.to')} <strong>${admin ? admin.name : '—'}</strong></span>
         <span>${t('cat.' + c.category)}</span>
         <span>${fmt(c.created_at)}</span>
       </div>
@@ -551,12 +520,11 @@ async function openCaseEmp(caseId) {
   show('view-case-emp');
 
   const [{ data: c }, { data: msgs }] = await Promise.all([
-    sb.from('cases').select('*, admins(name)').eq('id', caseId).single(),
+    sb.from('cases').select('*').eq('id', caseId).single(),
     sb.from('messages').select('*').eq('case_id', caseId).order('created_at', { ascending: true })
   ]);
 
   document.getElementById('c-token').textContent = c.anonymous_token;
-  document.getElementById('c-to').textContent    = c.admins ? c.admins.name : '—';
   document.getElementById('c-cat').textContent   = t('cat.' + c.category);
   const sp = document.getElementById('c-status');
   sp.textContent = t('status.' + c.status);
@@ -591,10 +559,10 @@ async function showAdminDash() {
   const list = document.getElementById('admin-cases-list');
   list.innerHTML = `<div class="empty-state">${t('common.loading')}</div>`;
 
-  // employee_id är avsiktligt exkluderat — anonymitet upprätthålls på query-nivå
+  // employee_id är avsiktligt exkluderat — anonymitet upprätthålls på query-nivå.
+  // Ingen mottagarfiltrering: delad inkorg, RLS avgör vilka rader admins ser.
   const { data: cases, error } = await sb.from('cases')
     .select('id, anonymous_token, reporter_type, reporter_name, category, department, status, created_at, messages(*)')
-    .eq('recipient_admin_id', me.id)
     .order('created_at', { ascending: false });
 
   if (error) { list.innerHTML = `<div class="empty-state">Fel: ${error.message}</div>`; return; }

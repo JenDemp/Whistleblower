@@ -408,15 +408,150 @@ create policy "Attachments storage: anonym uppladdning"
 
 
 -- ================================================================
--- STEG 3: Kör EFTER att admins registrerat sig i appen som
+-- STEG 3 (TILLÄGG – kör detta block, EJ destruktivt):
+-- Delad admin-inkorg (ingen mottagare väljs längre) + SUPER-admin.
+-- Dennis = super-admin (ser allt, får INTE automatiska notiser).
+-- Leif/Ulrika/Rikard/Irina = vanliga admins (delad inkorg, får notiser).
+-- ================================================================
+
+-- 16. Ny roll-flagga på admins
+alter table public.admins add column if not exists is_super_admin boolean not null default false;
+
+-- 17. Ta bort en-till-en-routning – alla ärenden syns nu för alla admins
+alter table public.cases drop column if exists recipient_admin_id;
+
+-- 18. RLS: vilken admin som helst får läsa/uppdatera alla ärenden
+drop policy if exists "Cases: admin läser tilldelade" on public.cases;
+create policy "Cases: admin läser alla" on public.cases
+  for select using (exists (select 1 from public.admins a where a.id = auth.uid()));
+
+drop policy if exists "Cases: admin uppdaterar status" on public.cases;
+create policy "Cases: admin uppdaterar status" on public.cases
+  for update using (exists (select 1 from public.admins a where a.id = auth.uid()));
+
+drop policy if exists "Messages: admin" on public.messages;
+create policy "Messages: admin" on public.messages
+  for all using (exists (select 1 from public.admins a where a.id = auth.uid()));
+
+drop policy if exists "Attachments: admin" on public.attachments;
+create policy "Attachments: admin" on public.attachments
+  for all using (exists (select 1 from public.admins a where a.id = auth.uid()));
+
+drop policy if exists "Attachments storage: admin läser" on storage.objects;
+create policy "Attachments storage: admin läser" on storage.objects
+  for select using (
+    bucket_id = 'case-attachments' and
+    exists (select 1 from public.admins a where a.id = auth.uid())
+  );
+
+-- 19. create_anonymous_case: p_recipient_admin_id tas bort (fanns i
+-- den gamla signaturen, så funktionen måste droppas innan den skapas om)
+drop function if exists public.create_anonymous_case(text,text,text,text,text,text,text,text,uuid,text);
+
+create or replace function public.create_anonymous_case(
+  p_category           text,
+  p_department          text,
+  p_department_detail   text,
+  p_who_involved        text,
+  p_where_happened      text,
+  p_when_happened       text,
+  p_what_happened       text,
+  p_other_actions       text,
+  p_message             text
+)
+returns table(case_id uuid, access_code text, wb_token text)
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_code  text;
+  v_token text;
+  v_id    uuid;
+begin
+  v_code := replace(replace(replace(encode(gen_random_bytes(18), 'base64'), '/', ''), '+', ''), '=', '');
+  v_token := public.generate_wb_token();
+
+  insert into public.cases (
+    anonymous_token, reporter_type, access_code_hash,
+    category, department, department_detail,
+    who_involved, where_happened, when_happened, what_happened, other_actions,
+    status
+  ) values (
+    v_token, 'anonymous_code', crypt(v_code, gen_salt('bf')),
+    p_category, p_department, p_department_detail,
+    p_who_involved, p_where_happened, p_when_happened, p_what_happened, p_other_actions,
+    'open'
+  )
+  returning id into v_id;
+
+  insert into public.messages (case_id, from_role, text)
+  values (v_id, 'employee', p_message);
+
+  return query select v_id, v_code, v_token;
+end;
+$$;
+
+grant execute on function public.create_anonymous_case to anon, authenticated;
+
+-- 20. get_case_by_code: admin_name fanns bara för att visa VEM
+-- ärendet gick till — det konceptet finns inte längre (delad inkorg)
+drop function if exists public.get_case_by_code(text);
+
+create or replace function public.get_case_by_code(p_code text)
+returns table(
+  case_id      uuid,
+  wb_token     text,
+  category     text,
+  department   text,
+  status       text,
+  created_at   timestamptz,
+  messages     jsonb
+)
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_case record;
+begin
+  select c.id, c.anonymous_token, c.category, c.department, c.status, c.created_at
+    into v_case
+    from public.cases c
+    where c.reporter_type = 'anonymous_code'
+      and c.access_code_hash = crypt(p_code, c.access_code_hash);
+
+  if v_case.id is null then
+    return;
+  end if;
+
+  return query
+    select
+      v_case.id, v_case.anonymous_token, v_case.category, v_case.department,
+      v_case.status, v_case.created_at,
+      (select coalesce(jsonb_agg(jsonb_build_object(
+                'from_role', m.from_role, 'text', m.text, 'created_at', m.created_at
+              ) order by m.created_at), '[]'::jsonb)
+       from public.messages m where m.case_id = v_case.id);
+end;
+$$;
+
+grant execute on function public.get_case_by_code to anon, authenticated;
+
+
+-- ================================================================
+-- STEG 4: Kör EFTER att admins registrerat sig i appen som
 -- "öppen anmälare" (namn+lösenord). Hämta UUID från
 -- Authentication → Users i Supabase och klistra in nedan.
+-- is_super_admin = true ENDAST för Dennis.
 -- ================================================================
 
 -- UPDATE public.profiles SET is_admin = true WHERE id = 'UUID_HÄR';
--- INSERT INTO public.admins (id, name, title, role, photo) VALUES
---   ('DENNIS_UUID',  'Dennis Roslinde',   'Kvalitetsanalytiker & admin', 'Admin', null),
---   ('ULRIKA_UUID',  'Ulrika Westerström','HR-chef',                     'HR',     'Pictures_of_HR_contacts/Ulrika_boss.png'),
---   ('LEIF_UUID',    'Leif Glavå',        'Kvalitets- och utvecklingschef','Ledning','Pictures_of_HR_contacts/Leif_Boss.png'),
---   ('RIKARD_UUID',  'Rikard Östrup',     'HR-partner',                  'HR',     null),
---   ('IRINA_UUID',   'Irina Dahlquist',   'HR-partner',                  'HR',     null);
+-- INSERT INTO public.admins (id, name, title, role, photo, is_super_admin) VALUES
+--   ('ULRIKA_UUID',  'Ulrika Westerström','HR-chef',                     'HR',     'Pictures_of_HR_contacts/Ulrika_boss.png', false),
+--   ('LEIF_UUID',    'Leif Glavå',        'Kvalitets- och utvecklingschef','Ledning','Pictures_of_HR_contacts/Leif_Boss.png', false),
+--   ('RIKARD_UUID',  'Rikard Östrup',     'HR-partner',                  'HR',     null, false),
+--   ('IRINA_UUID',   'Irina Dahlquist',   'HR-partner',                  'HR',     null, false);
+
+-- Dennis admin-raden finns redan (skapades tidigare) — bara sätt flaggan:
+-- UPDATE public.admins SET is_super_admin = true WHERE id = 'DENNIS_UUID';
