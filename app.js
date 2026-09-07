@@ -6,11 +6,17 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ── SESSION STATE ─────────────────────────────────────────────
-let me            = null;   // { id, email, anonymousToken?, name?, title?, role?, photo? }
+let me            = null;   // { id, email, reporterType, name?, phone?, title?, photo? }
 let meType        = null;   // 'employee' | 'admin'
 let activeCaseId  = null;
 let selectedRecip = null;
 let activeDashTab = 'all';
+
+let reportType    = null;   // 'anonymous_code' | 'anonymous_email' | 'open' — for the report currently being created
+let pendingFiles  = [];     // File[] queued for upload with the new report
+let lastAccessCode = null;  // shown once on the code-confirm screen
+let anonCaseCode  = null;   // access code for the anonymous case currently open (tier 1 follow-up)
+let anonCaseData  = null;   // cached result of get_case_by_code RPC
 
 // ── VIEW ROUTER ───────────────────────────────────────────────
 function show(id) {
@@ -23,187 +29,258 @@ function show(id) {
 function updateHeader() {
   const logoutBtn = document.getElementById('btn-logout');
   const profileEl = document.getElementById('header-profile');
+  const adminLink = document.getElementById('admin-link');
   if (me && meType === 'admin') {
     logoutBtn.style.display = 'inline-flex';
-    if (me.photo) {
-      profileEl.innerHTML = `
-        <div class="admin-profile">
-          <img src="${me.photo}" alt="${me.name}">
-          <div><div class="a-name">${me.name}</div><div class="a-role">${me.title}</div></div>
-        </div>`;
-    } else {
-      profileEl.innerHTML = `
-        <div class="admin-profile">
-          <div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;color:var(--gold);font-weight:700;font-size:16px;border:2px solid var(--gold);">
-            ${me.name.charAt(0)}
-          </div>
-          <div><div class="a-name">${me.name}</div><div class="a-role">${me.title}</div></div>
-        </div>`;
-    }
+    adminLink.style.display = 'none';
+    profileEl.innerHTML = me.photo
+      ? `<div class="admin-profile"><img src="${me.photo}" alt="${me.name}"><div><div class="a-name">${me.name}</div><div class="a-role">${me.title||''}</div></div></div>`
+      : `<div class="admin-profile"><div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;color:var(--gold);font-weight:700;font-size:16px;border:2px solid var(--gold);">${(me.name||'?').charAt(0)}</div><div><div class="a-name">${me.name}</div><div class="a-role">${me.title||''}</div></div></div>`;
     profileEl.style.display = 'block';
   } else if (me && meType === 'employee') {
     logoutBtn.style.display = 'inline-flex';
+    adminLink.style.display = 'none';
     profileEl.style.display = 'none';
   } else {
     logoutBtn.style.display = 'none';
+    adminLink.style.display = 'inline-flex';
     profileEl.style.display = 'none';
   }
-  document.getElementById('tab-nav').style.display = 'flex';
 }
 
-// ── LANDING ───────────────────────────────────────────────────
-function showLanding(activePanel) {
-  const panel = activePanel || 'anmal';
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.getElementById('panel-' + panel).classList.add('active');
-  document.querySelectorAll('.tab-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.tab === panel);
-  });
-  show('view-landing');
+async function handleLogout() {
+  await sb.auth.signOut();
 }
 
-function handleTab(tab) {
-  if (tab === 'anmal') {
-    if (me && meType === 'employee') { showNewCase(); return; }
-    if (me && meType === 'admin')    { showAdminDash(); return; }
+// ── AUTH: react to session changes ──────────────────────────────
+sb.auth.onAuthStateChange(async (event, session) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    show('view-reset-password');
+  } else if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
+    await loadUserContext(session);
+  } else if (event === 'SIGNED_OUT') {
+    me = null; meType = null; activeCaseId = null; selectedRecip = null; reportType = null;
+    showLanding();
+  } else if (event === 'INITIAL_SESSION' && !session) {
+    showLanding();
   }
-  if (tab === 'mina' && me && meType === 'employee') { showEmpDash(); return; }
-  if (tab === 'admin' && me && meType === 'admin')   { showAdminDash(); return; }
-  showLanding(tab);
-}
+});
 
-// ── LOADING STATE ─────────────────────────────────────────────
-function setBusy(btnId, busy) {
-  const btn = document.getElementById(btnId);
-  if (!btn) return;
-  btn.disabled = busy;
-  btn.style.opacity = busy ? '0.6' : '1';
-}
-
-// ── AUTH: load context after sign-in ─────────────────────────
 async function loadUserContext(session) {
   try {
     const { data: profile, error } = await sb
       .from('profiles')
-      .select('anonymous_token, is_admin, admins(id, name, title, role, photo)')
+      .select('reporter_type, is_admin, name, phone, admins(id, name, title, role, photo)')
       .eq('id', session.user.id)
       .single();
     if (error) throw error;
 
+    me = { id: session.user.id, email: session.user.email, reporterType: profile.reporter_type, name: profile.name, phone: profile.phone };
+
     if (profile.is_admin && profile.admins) {
-      me = { id: session.user.id, email: session.user.email, ...profile.admins };
       meType = 'admin';
+      me.name  = profile.admins.name;
+      me.title = profile.admins.title;
+      me.photo = profile.admins.photo;
       await showAdminDash();
     } else {
-      me = { id: session.user.id, email: session.user.email, anonymousToken: profile.anonymous_token };
       meType = 'employee';
-      await showEmpDash();
+      // If we arrived here via the reporter-type → register flow, continue straight to the form
+      if (reportType) await showNewCase();
+      else await showEmpDash();
     }
-  } catch(e) {
+  } catch (e) {
     console.error('Kunde inte ladda användarkontexten:', e);
     await sb.auth.signOut();
-    showLanding('anmal');
+    showLanding();
   }
 }
 
-// ── EMPLOYEE REGISTER ─────────────────────────────────────────
-function showEmpRegister() {
+// ── LANDING ───────────────────────────────────────────────────
+function showLanding(section) {
+  show('view-landing');
+  document.querySelector('.landing-grid').style.display = section ? 'none' : 'grid';
+  document.querySelectorAll('.tab-panel').forEach(p => { p.style.display = 'none'; });
+  if (section) {
+    const panel = document.getElementById('panel-' + section);
+    if (panel) panel.style.display = 'block';
+  }
+  window.scrollTo(0, 0);
+}
+
+function onLangChange() {
+  if (meType === 'admin' && document.getElementById('view-admin-dash').style.display === 'block') showAdminDash();
+  if (meType === 'employee' && document.getElementById('view-emp-dash').style.display === 'block') showEmpDash();
+}
+
+// ── REPORT TYPE SELECTION ───────────────────────────────────────
+function startNewReport() {
+  reportType = null;
+  pendingFiles = [];
+  show('view-report-type');
+}
+
+// Inloggad medarbetare (typ 2/3) som klickar "+ Ny anmälan" ska INTE
+// behöva välja typ igen eller registrera sig på nytt — deras konto har
+// redan en fast reporter_type (satt vid registreringen).
+function newCaseForExistingUser() {
+  reportType = me.reporterType;
+  showNewCase();
+}
+
+function selectReportType(type) {
+  reportType = type;
+
+  if (type === 'anonymous_code') {
+    showNewCase();
+    return;
+  }
+
   resetRegForm();
+  const nameGroup  = document.getElementById('reg-name-group');
+  const phoneGroup = document.getElementById('reg-phone-group');
+  const subtitle   = document.getElementById('reg-subtitle');
+  if (type === 'open') {
+    nameGroup.style.display  = 'block';
+    phoneGroup.style.display = 'block';
+    subtitle.textContent = t('register.subtitleOpen');
+  } else {
+    nameGroup.style.display  = 'none';
+    phoneGroup.style.display = 'none';
+    subtitle.textContent = t('register.subtitleAnon');
+  }
   show('view-emp-register');
+}
+
+// ── REGISTER (typ 2 & 3 – konto krävs) ──────────────────────────
+function resetRegForm() {
+  document.getElementById('reg-step1').style.display = 'block';
+  document.getElementById('reg-step2').style.display = 'none';
+  ['reg-email','reg-pw','reg-pw2','reg-name','reg-phone'].forEach(id => { document.getElementById(id).value = ''; });
+  clearErrors();
 }
 
 async function handleSendCode() {
   const email = val('reg-email').toLowerCase();
   const pw    = val('reg-pw');
   const pw2   = val('reg-pw2');
+  const name  = val('reg-name');
+  const phone = val('reg-phone');
 
-  if (!email || !pw)  return err('reg-err', 'Fyll i alla fält.');
-  if (pw !== pw2)     return err('reg-err', 'Lösenorden matchar inte.');
-  if (pw.length < 8)  return err('reg-err', 'Lösenordet måste vara minst 8 tecken.');
+  if (!email || !pw) return err('reg-err', t('err.fillAll'));
+  if (reportType === 'open' && !name) return err('reg-err', t('err.nameRequired'));
+  if (pw !== pw2) return err('reg-err', t('err.pwMismatch'));
+  if (pw.length < 8) return err('reg-err', t('err.pwShort'));
 
   setBusy('btn-send-code', true);
   const { data, error } = await sb.auth.signUp({
     email,
     password: pw,
-    options: { emailRedirectTo: window.location.href }
+    options: {
+      emailRedirectTo: window.location.href,
+      data: {
+        reporter_type: reportType,
+        name:  reportType === 'open' ? name : null,
+        phone: reportType === 'open' ? (phone || null) : null
+      }
+    }
   });
   setBusy('btn-send-code', false);
 
   if (error) {
-    return err('reg-err',
-      error.message === 'User already registered'
-        ? 'Det finns redan ett konto med denna e-postadress.'
-        : error.message);
+    return err('reg-err', error.message === 'User already registered' ? t('err.alreadyRegistered') : error.message);
   }
+  if (data.session) return; // auto-confirmed — onAuthStateChange handles redirect
 
-  if (data.session) {
-    // Email confirmation is disabled — user is now logged in, onAuthStateChange handles redirect
-    return;
-  }
-
-  // Email confirmation is enabled — show "check your inbox"
   document.getElementById('reg-step1').style.display = 'none';
   document.getElementById('reg-step2').style.display = 'block';
   document.getElementById('reg-sent-to').textContent = email;
   clearErrors();
 }
 
-function resetRegForm() {
-  document.getElementById('reg-step1').style.display = 'block';
-  document.getElementById('reg-step2').style.display = 'none';
+// ── FOLLOW UP ─────────────────────────────────────────────────
+function showFollowUp() { show('view-followup-choice'); }
+
+async function handleCodeEntry() {
+  const code = val('access-code-input');
+  if (!code) return err('code-entry-err', t('err.enterCode'));
+  setBusy('btn-code-entry', true);
+  const { data, error } = await sb.rpc('get_case_by_code', { p_code: code });
+  setBusy('btn-code-entry', false);
+  if (error || !data || !data.length) return err('code-entry-err', t('err.invalidCode'));
+  anonCaseCode = code;
+  anonCaseData = data[0];
+  renderAnonCase();
+  show('view-anon-case');
+}
+
+function renderAnonCase() {
+  const c = anonCaseData;
+  document.getElementById('anon-token').textContent = c.wb_token;
+  document.getElementById('anon-to').textContent = c.admin_name || '—';
+  document.getElementById('anon-cat').textContent = t('cat.' + c.category);
+  const sp = document.getElementById('anon-status');
+  sp.textContent = t('status.' + c.status);
+  sp.className = `status-pill s-${c.status}`;
+  renderMsgs('anon-msgs', c.messages || [], 'employee');
+  document.getElementById('anon-reply-input').value = '';
+}
+
+async function handleAnonReply() {
+  const text = val('anon-reply-input');
+  if (!text) return err('anon-reply-err', t('err.writeMessage'));
+  setBusy('btn-anon-reply', true);
+  const { data: ok, error } = await sb.rpc('add_anonymous_message', { p_code: anonCaseCode, p_text: text });
+  setBusy('btn-anon-reply', false);
+  if (error || !ok) return err('anon-reply-err', t('err.replyFailed'));
+
+  sb.functions.invoke('notify', { body: { type: 'employee_reply', case_id: anonCaseData.case_id } });
+
+  document.getElementById('anon-reply-input').value = '';
   clearErrors();
+  const { data } = await sb.rpc('get_case_by_code', { p_code: anonCaseCode });
+  if (data && data[0]) { anonCaseData = data[0]; renderAnonCase(); }
 }
 
-// ── FORGOT / RESET PASSWORD ───────────────────────────────────
-async function handleForgotPassword() {
-  const email = val('emp-email');
-  if (!email) return err('emp-err', 'Ange din e-postadress ovan och klicka sedan på "Glömt lösenord?".');
-
-  const { error } = await sb.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.href
-  });
-  if (error) return err('emp-err', error.message);
-
-  // Reuse error element as success feedback (temporary)
-  const el = document.getElementById('emp-err');
-  el.textContent = '✓ Återställningslänk skickad! Kontrollera din JENSEN-inkorg.';
-  el.style.display = 'block';
-  el.style.color = 'var(--green, #2e7d32)';
-  el.style.background = '#f0fdf4';
-  el.style.borderColor = '#86efac';
-}
-
-async function handleSetNewPassword() {
-  const pw  = val('new-pw');
-  const pw2 = val('new-pw2');
-  if (!pw)           return err('reset-err', 'Ange ett lösenord.');
-  if (pw !== pw2)    return err('reset-err', 'Lösenorden matchar inte.');
-  if (pw.length < 8) return err('reset-err', 'Lösenordet måste vara minst 8 tecken.');
-
-  setBusy('btn-set-pw', true);
-  const { error } = await sb.auth.updateUser({ password: pw });
-  setBusy('btn-set-pw', false);
-  if (error) return err('reset-err', error.message);
-  // onAuthStateChange → SIGNED_IN fires after updateUser and routes to dashboard
-}
-
-// ── EMPLOYEE LOGIN ────────────────────────────────────────────
+// ── LOGIN (typ 2 & 3) ────────────────────────────────────────────
 function showEmpLogin() { show('view-emp-login'); }
 
 async function handleEmpLogin() {
   const email = val('emp-email');
   const pw    = val('emp-pw');
-  if (!email || !pw) return err('emp-err', 'Fyll i alla fält.');
+  if (!email || !pw) return err('emp-err', t('err.fillAll'));
 
   setBusy('btn-emp-login', true);
   const { error } = await sb.auth.signInWithPassword({ email, password: pw });
   setBusy('btn-emp-login', false);
 
-  if (error) return err('emp-err',
-    error.message.includes('not confirmed')
-      ? 'Verifiera din e-post först. Klicka på länken vi skickade dig.'
-      : 'Felaktig e-postadress eller lösenord.');
-  // onAuthStateChange handles redirect to dashboard
+  if (error) return err('emp-err', error.message.includes('not confirmed') ? t('err.notConfirmed') : t('err.badCredentials'));
+}
+
+async function handleForgotPassword() {
+  const email = val('emp-email');
+  if (!email) return err('emp-err', t('err.enterEmailFirst'));
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.href });
+  if (error) return err('emp-err', error.message);
+  const elx = document.getElementById('emp-err');
+  elx.textContent = t('common.resetLinkSent');
+  elx.style.display = 'block';
+  elx.style.color = '#2e7d32';
+  elx.style.background = '#f0fdf4';
+  elx.style.borderColor = '#86efac';
+}
+
+async function handleSetNewPassword() {
+  const pw  = val('new-pw');
+  const pw2 = val('new-pw2');
+  if (!pw) return err('reset-err', t('err.enterPw'));
+  if (pw !== pw2) return err('reset-err', t('err.pwMismatch'));
+  if (pw.length < 8) return err('reset-err', t('err.pwShort'));
+
+  setBusy('btn-set-pw', true);
+  const { error } = await sb.auth.updateUser({ password: pw });
+  setBusy('btn-set-pw', false);
+  if (error) return err('reset-err', error.message);
 }
 
 // ── ADMIN LOGIN ───────────────────────────────────────────────
@@ -212,84 +289,27 @@ function showAdminLogin() { show('view-admin-login'); }
 async function handleAdminLogin() {
   const email = val('admin-email');
   const pw    = val('admin-pw');
-  if (!email || !pw) return err('admin-err', 'Fyll i alla fält.');
+  if (!email || !pw) return err('admin-err', t('err.fillAll'));
 
   setBusy('btn-admin-login', true);
   const { error } = await sb.auth.signInWithPassword({ email, password: pw });
   setBusy('btn-admin-login', false);
-
-  if (error) return err('admin-err', 'Felaktig e-postadress eller lösenord.');
-  // loadUserContext checks is_admin flag; non-admins see employee dash
+  if (error) return err('admin-err', t('err.badCredentials'));
 }
 
-// ── EMPLOYEE DASHBOARD ────────────────────────────────────────
-async function showEmpDash(filter) {
-  activeDashTab = filter || activeDashTab || 'all';
-  document.querySelectorAll('.sub-tab').forEach(b => {
-    b.classList.toggle('active', b.dataset.stab === activeDashTab);
-  });
-  document.querySelectorAll('.tab-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.tab === 'mina');
-  });
-  document.getElementById('emp-token').textContent = me.anonymousToken;
-  show('view-emp-dash');
-
-  const list = document.getElementById('emp-cases-list');
-  list.innerHTML = '<div class="empty-state">Laddar ärenden…</div>';
-
-  let q = sb.from('cases')
-    .select('*, messages(*)')
-    .eq('employee_id', me.id)
-    .order('created_at', { ascending: false });
-  if (activeDashTab === 'open')     q = q.neq('status', 'resolved');
-  if (activeDashTab === 'resolved') q = q.eq('status', 'resolved');
-
-  const { data: cases, error } = await q;
-  if (error) { list.innerHTML = `<div class="empty-state">Fel: ${error.message}</div>`; return; }
-
-  const { data: admins } = await sb.from('admins').select('id, name');
-  const adminMap = Object.fromEntries((admins || []).map(a => [a.id, a]));
-
-  list.innerHTML = '';
-  if (!cases || !cases.length) {
-    list.innerHTML = `<div class="empty-state">${activeDashTab === 'all'
-      ? 'Du har inga ärenden ännu. Klicka <strong>+ Ny anmälan</strong> för att komma igång.'
-      : 'Inga ärenden i denna kategori.'}</div>`;
-    return;
-  }
-
-  cases.forEach(c => {
-    const admin   = adminMap[c.recipient_admin_id];
-    const msgs    = (c.messages || []).sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
-    const lastMsg = msgs.at(-1);
-    const unread  = lastMsg && lastMsg.from_role === 'admin';
-    const firstMsg = msgs[0];
-
-    const div = el('div', `case-card${unread ? ' unread' : ''}`);
-    div.innerHTML = `
-      <div class="case-header">
-        <span class="token">${c.anonymous_token}</span>
-        <span class="status-pill s-${c.status}">${statusSv(c.status)}</span>
-      </div>
-      <div class="case-meta">
-        <span>Till: <strong>${admin ? admin.name : 'Okänd'}</strong></span>
-        <span>${catSv(c.category)}</span>
-        <span>${fmt(c.created_at)}</span>
-      </div>
-      <div class="case-preview">${firstMsg ? esc(firstMsg.text.slice(0,130)) : ''}${firstMsg && firstMsg.text.length > 130 ? '…' : ''}</div>
-      ${unread ? '<div class="new-badge">Nytt svar</div>' : ''}`;
-    div.addEventListener('click', () => openCaseEmp(c.id));
-    list.appendChild(div);
-  });
-}
-
-// ── NEW CASE ──────────────────────────────────────────────────
+// ── NEW CASE / REPORT FORM (delas av alla tre typer) ────────────
 async function showNewCase() {
   selectedRecip = null;
+  pendingFiles = [];
   document.getElementById('new-case-form').reset();
+  document.getElementById('nc-files-list').innerHTML = '';
+  document.getElementById('dept-detail-group').style.display = 'none';
+
+  document.getElementById('reportform-subtitle').textContent =
+    reportType === 'open' ? t('reportForm.subtitleOpen') : t('reportForm.subtitleAnon');
+
   const grid = document.getElementById('recipient-grid');
-  grid.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px;">Laddar mottagare…</div>';
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === 'anmal'));
+  grid.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:8px;">${t('common.loading')}</div>`;
   show('view-new-case');
 
   const { data: admins } = await sb.from('admins').select('*');
@@ -314,36 +334,218 @@ async function showNewCase() {
   });
 }
 
+function handleReportFormBack() {
+  if (reportType === 'anonymous_code') { showLanding(); return; }
+  if (me && meType === 'employee') { showEmpDash(); return; }
+  show('view-report-type');
+}
+
+function resetReportForm() {
+  reportType = null;
+  pendingFiles = [];
+}
+
+function handleDeptChange() {
+  const dept = val('dept-sel');
+  const group    = document.getElementById('dept-detail-group');
+  const staberSel = document.getElementById('dept-detail-sel');
+  const annatText = document.getElementById('dept-detail-text');
+  const label = document.getElementById('dept-detail-label');
+  if (dept === 'staber') {
+    group.style.display = 'block';
+    staberSel.style.display = 'block';
+    annatText.style.display = 'none';
+    label.textContent = t('reportForm.staberChoose');
+  } else if (dept === 'annat') {
+    group.style.display = 'block';
+    staberSel.style.display = 'none';
+    annatText.style.display = 'block';
+    label.textContent = t('reportForm.specify');
+  } else {
+    group.style.display = 'none';
+  }
+}
+
+// ── FILE ATTACHMENTS ─────────────────────────────────────────────
+const MAX_TOTAL_BYTES = 50 * 1024 * 1024;
+
+function handleFilesSelected(inputEl) {
+  pendingFiles = pendingFiles.concat(Array.from(inputEl.files));
+  inputEl.value = '';
+  renderFilesList();
+}
+
+function removeFile(idx) {
+  pendingFiles.splice(idx, 1);
+  renderFilesList();
+}
+
+function renderFilesList() {
+  const list = document.getElementById('nc-files-list');
+  list.innerHTML = '';
+  let total = 0;
+  pendingFiles.forEach((f, idx) => {
+    total += f.size;
+    const chip = el('div', 'file-chip');
+    chip.innerHTML = `<span>${esc(f.name)} (${(f.size / 1024 / 1024).toFixed(2)} MB)</span><span class="file-remove" onclick="removeFile(${idx})">✕</span>`;
+    list.appendChild(chip);
+  });
+  if (total > MAX_TOTAL_BYTES) err('nc-err', t('err.filesTooLarge'));
+  else clearErrors();
+}
+
+async function uploadPendingFiles(caseId) {
+  for (const file of pendingFiles) {
+    const path = `${caseId}/${Date.now()}_${file.name}`;
+    const { error: upErr } = await sb.storage.from('case-attachments').upload(path, file);
+    if (!upErr) {
+      await sb.from('attachments').insert({ case_id: caseId, file_path: path, file_name: file.name, file_size: file.size });
+    }
+  }
+  pendingFiles = [];
+}
+
+document.addEventListener('change', (e) => {
+  if (e.target && e.target.id === 'nc-files') handleFilesSelected(e.target);
+});
+
+// ── CREATE CASE (grenar per anmälartyp) ─────────────────────────
 async function handleCreateCase() {
-  if (!selectedRecip)        return err('nc-err', 'Välj en mottagare.');
   const category = val('cat-sel');
+  const dept     = val('dept-sel');
   const message  = val('case-msg');
-  if (!category)             return err('nc-err', 'Välj en kategori.');
-  if (!message || message.length < 10)
-    return err('nc-err', 'Skriv ett mer utförligt meddelande (minst 10 tecken).');
+
+  if (!selectedRecip)  return err('nc-err', t('err.chooseRecipient'));
+  if (!category)       return err('nc-err', t('err.chooseCategory'));
+  if (!dept)            return err('nc-err', t('err.chooseDept'));
+  if (!message || message.length < 10) return err('nc-err', t('err.messageShort'));
+
+  let deptDetail = null;
+  if (dept === 'staber') deptDetail = val('dept-detail-sel');
+  if (dept === 'annat')  deptDetail = val('dept-detail-text');
+
+  const who = val('q-who'), where = val('q-where'), when = val('q-when'),
+        what = val('q-what'), actions = val('q-actions');
 
   setBusy('btn-create-case', true);
-  const { data: caseRow, error: caseErr } = await sb.from('cases').insert({
-    anonymous_token:    me.anonymousToken,
-    employee_id:        me.id,
-    recipient_admin_id: selectedRecip,
-    category,
-    status: 'open'
-  }).select().single();
 
+  if (reportType === 'anonymous_code') {
+    const { data, error } = await sb.rpc('create_anonymous_case', {
+      p_category: category, p_department: dept, p_department_detail: deptDetail,
+      p_who_involved: who || null, p_where_happened: where || null,
+      p_when_happened: when || null, p_what_happened: what || null,
+      p_other_actions: actions || null,
+      p_recipient_admin_id: selectedRecip, p_message: message
+    });
+    setBusy('btn-create-case', false);
+    if (error || !data || !data[0]) return err('nc-err', (error && error.message) || t('err.generic'));
+
+    const row = data[0];
+    if (pendingFiles.length) await uploadPendingFiles(row.case_id);
+    sb.functions.invoke('notify', { body: { type: 'new_case', case_id: row.case_id } });
+    showCodeConfirm(row.access_code, row.wb_token);
+    return;
+  }
+
+  // typ 2 & 3 — kräver inloggning
+  const insertPayload = {
+    reporter_type: reportType,
+    employee_id: me.id,
+    recipient_admin_id: selectedRecip,
+    category, department: dept, department_detail: deptDetail,
+    who_involved: who || null, where_happened: where || null,
+    when_happened: when || null, what_happened: what || null, other_actions: actions || null,
+    status: 'open'
+  };
+  if (reportType === 'open') {
+    insertPayload.reporter_name  = me.name;
+    insertPayload.reporter_phone = me.phone || null;
+  }
+
+  const { data: caseRow, error: caseErr } = await sb.from('cases').insert(insertPayload).select().single();
   if (caseErr) { setBusy('btn-create-case', false); return err('nc-err', caseErr.message); }
 
-  const { error: msgErr } = await sb.from('messages').insert({
-    case_id: caseRow.id, from_role: 'employee', text: message
-  });
+  const { error: msgErr } = await sb.from('messages').insert({ case_id: caseRow.id, from_role: 'employee', text: message });
   setBusy('btn-create-case', false);
   if (msgErr) return err('nc-err', msgErr.message);
 
+  if (pendingFiles.length) await uploadPendingFiles(caseRow.id);
   sb.functions.invoke('notify', { body: { type: 'new_case', case_id: caseRow.id } });
+
+  resetReportForm();
   await showEmpDash();
 }
 
-// ── EMPLOYEE CASE DETAIL ──────────────────────────────────────
+// ── KOD-BEKRÄFTELSE (typ 1, visas EN gång) ──────────────────────
+function showCodeConfirm(code, token) {
+  lastAccessCode = code;
+  document.getElementById('code-display-value').textContent = code;
+  document.getElementById('code-confirm-token').textContent = token;
+  show('view-code-confirm');
+}
+
+function copyAccessCode() {
+  if (!lastAccessCode) return;
+  navigator.clipboard.writeText(lastAccessCode).catch(() => {});
+}
+
+function handleCodeConfirmDone() {
+  lastAccessCode = null;
+  resetReportForm();
+  showLanding();
+}
+
+// ── EMPLOYEE DASHBOARD (typ 2 & 3) ────────────────────────────
+async function showEmpDash(filter) {
+  activeDashTab = filter || activeDashTab || 'all';
+  document.querySelectorAll('.sub-tab').forEach(b => b.classList.toggle('active', b.dataset.stab === activeDashTab));
+  show('view-emp-dash');
+
+  const list = document.getElementById('emp-cases-list');
+  list.innerHTML = `<div class="empty-state">${t('common.loading')}</div>`;
+
+  let q = sb.from('cases').select('*, messages(*)').eq('employee_id', me.id).order('created_at', { ascending: false });
+  if (activeDashTab === 'open')     q = q.neq('status', 'resolved');
+  if (activeDashTab === 'resolved') q = q.eq('status', 'resolved');
+
+  const { data: cases, error } = await q;
+  if (error) { list.innerHTML = `<div class="empty-state">Fel: ${error.message}</div>`; return; }
+
+  const { data: admins } = await sb.from('admins').select('id, name');
+  const adminMap = Object.fromEntries((admins || []).map(a => [a.id, a]));
+
+  list.innerHTML = '';
+  if (!cases || !cases.length) {
+    list.innerHTML = `<div class="empty-state">${activeDashTab === 'all' ? t('dash.emptyAll') : t('dash.emptyFiltered')}</div>`;
+    return;
+  }
+
+  cases.forEach(c => {
+    const admin   = adminMap[c.recipient_admin_id];
+    const msgs    = (c.messages || []).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    const lastMsg = msgs.at(-1);
+    const unread  = lastMsg && lastMsg.from_role === 'admin';
+    const firstMsg = msgs[0];
+
+    const div = el('div', `case-card${unread ? ' unread' : ''}`);
+    div.innerHTML = `
+      <div class="case-header">
+        <span class="token">${c.anonymous_token}</span>
+        <span class="status-pill s-${c.status}">${t('status.' + c.status)}</span>
+      </div>
+      <div class="case-meta">
+        <span>${t('anonCase.to')} <strong>${admin ? admin.name : '—'}</strong></span>
+        <span>${t('cat.' + c.category)}</span>
+        <span>${fmt(c.created_at)}</span>
+      </div>
+      <div class="case-preview">${firstMsg ? esc(firstMsg.text.slice(0, 130)) : ''}${firstMsg && firstMsg.text.length > 130 ? '…' : ''}</div>
+      ${unread ? `<div class="new-badge">${t('common.newReply')}</div>` : ''}`;
+    div.addEventListener('click', () => openCaseEmp(c.id));
+    list.appendChild(div);
+  });
+}
+
+// ── CASE DETAIL – Employee ─────────────────────────────────────
 async function openCaseEmp(caseId) {
   activeCaseId = caseId;
   show('view-case-emp');
@@ -354,10 +556,10 @@ async function openCaseEmp(caseId) {
   ]);
 
   document.getElementById('c-token').textContent = c.anonymous_token;
-  document.getElementById('c-to').textContent    = c.admins ? c.admins.name : 'Okänd';
-  document.getElementById('c-cat').textContent   = catSv(c.category);
+  document.getElementById('c-to').textContent    = c.admins ? c.admins.name : '—';
+  document.getElementById('c-cat').textContent   = t('cat.' + c.category);
   const sp = document.getElementById('c-status');
-  sp.textContent = statusSv(c.status);
+  sp.textContent = t('status.' + c.status);
   sp.className   = `status-pill s-${c.status}`;
   renderMsgs('emp-msgs', msgs || [], 'employee');
   document.getElementById('emp-reply-input').value = '';
@@ -365,14 +567,14 @@ async function openCaseEmp(caseId) {
 
 async function handleEmpReply() {
   const text = val('emp-reply-input');
-  if (!text) return err('emp-reply-err', 'Skriv ett meddelande.');
+  if (!text) return err('emp-reply-err', t('err.writeMessage'));
   setBusy('btn-emp-reply', true);
-  const { error } = await sb.from('messages').insert({
-    case_id: activeCaseId, from_role: 'employee', text
-  });
+  const { error } = await sb.from('messages').insert({ case_id: activeCaseId, from_role: 'employee', text });
   setBusy('btn-emp-reply', false);
   if (error) return err('emp-reply-err', error.message);
+
   sb.functions.invoke('notify', { body: { type: 'employee_reply', case_id: activeCaseId } });
+
   document.getElementById('emp-reply-input').value = '';
   clearErrors();
   const { data: msgs } = await sb.from('messages').select('*')
@@ -382,19 +584,16 @@ async function handleEmpReply() {
 
 // ── ADMIN DASHBOARD ───────────────────────────────────────────
 async function showAdminDash() {
-  document.getElementById('admin-name').textContent  = me.name  || me.email;
+  document.getElementById('admin-name').textContent  = me.name  || me.email || '';
   document.getElementById('admin-title').textContent = me.title || '';
-  document.querySelectorAll('.tab-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.tab === 'admin');
-  });
   show('view-admin-dash');
 
   const list = document.getElementById('admin-cases-list');
-  list.innerHTML = '<div class="empty-state">Laddar ärenden…</div>';
+  list.innerHTML = `<div class="empty-state">${t('common.loading')}</div>`;
 
-  // employee_id is intentionally excluded from this query — anonymity enforced at query level
+  // employee_id är avsiktligt exkluderat — anonymitet upprätthålls på query-nivå
   const { data: cases, error } = await sb.from('cases')
-    .select('id, anonymous_token, category, status, created_at, messages(*)')
+    .select('id, anonymous_token, reporter_type, reporter_name, category, department, status, created_at, messages(*)')
     .eq('recipient_admin_id', me.id)
     .order('created_at', { ascending: false });
 
@@ -402,62 +601,97 @@ async function showAdminDash() {
 
   list.innerHTML = '';
   if (!cases || !cases.length) {
-    list.innerHTML = '<div class="empty-state">Inga inkomna ärenden ännu.</div>';
+    list.innerHTML = `<div class="empty-state">${t('adminDash.empty')}</div>`;
     return;
   }
 
   cases.forEach(c => {
-    const msgs   = (c.messages || []).sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+    const msgs   = (c.messages || []).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
     const last   = msgs.at(-1);
     const unread = last && last.from_role === 'employee';
     const first  = msgs[0];
+    const typeLabel = c.reporter_type === 'open'
+      ? (c.reporter_name || t('reportType.t3title'))
+      : c.reporter_type === 'anonymous_email' ? t('reportType.t2title') : t('reportType.t1title');
 
     const div = el('div', `case-card${unread ? ' unread' : ''}`);
     div.innerHTML = `
       <div class="case-header">
         <span class="token">${c.anonymous_token}</span>
-        <span class="status-pill s-${c.status}">${statusSv(c.status)}</span>
+        <span class="status-pill s-${c.status}">${t('status.' + c.status)}</span>
       </div>
       <div class="case-meta">
-        <span>${catSv(c.category)}</span>
+        <span class="type-tag">${esc(typeLabel)}</span>
+        <span>${t('cat.' + c.category)}</span>
         <span>${fmt(c.created_at)}</span>
-        <span>${msgs.length} meddelanden</span>
+        <span>${msgs.length} ${t('common.messages')}</span>
       </div>
-      <div class="case-preview">${first ? esc(first.text.slice(0,130)) : ''}${first && first.text.length > 130 ? '…' : ''}</div>
-      ${unread ? '<div class="new-badge">Nytt meddelande</div>' : ''}`;
+      <div class="case-preview">${first ? esc(first.text.slice(0, 130)) : ''}${first && first.text.length > 130 ? '…' : ''}</div>
+      ${unread ? `<div class="new-badge">${t('common.newMessage')}</div>` : ''}`;
     div.addEventListener('click', () => openCaseAdmin(c.id));
     list.appendChild(div);
   });
 }
 
-// ── ADMIN CASE DETAIL ─────────────────────────────────────────
+// ── CASE DETAIL – Admin ─────────────────────────────────────────
 async function openCaseAdmin(caseId) {
   activeCaseId = caseId;
   show('view-case-admin');
 
-  const [{ data: c }, { data: msgs }] = await Promise.all([
-    // employee_id is never selected — anonymity enforced at query level
-    sb.from('cases').select('id, anonymous_token, category, status').eq('id', caseId).single(),
-    sb.from('messages').select('*').eq('case_id', caseId).order('created_at', { ascending: true })
+  const [{ data: c }, { data: msgs }, { data: attachments }] = await Promise.all([
+    // employee_id är aldrig med i select — anonymitet upprätthålls på query-nivå
+    sb.from('cases').select('id, anonymous_token, reporter_type, reporter_name, reporter_phone, category, department, department_detail, status').eq('id', caseId).single(),
+    sb.from('messages').select('*').eq('case_id', caseId).order('created_at', { ascending: true }),
+    sb.from('attachments').select('*').eq('case_id', caseId)
   ]);
 
   document.getElementById('ac-token').textContent = c.anonymous_token;
-  document.getElementById('ac-cat').textContent   = catSv(c.category);
+  document.getElementById('ac-cat').textContent   = t('cat.' + c.category);
+  const deptDetailLabel = c.department_detail
+    ? (translations[currentLang]['staber.' + c.department_detail] || c.department_detail)
+    : '';
+  document.getElementById('ac-dept').textContent = t('dept.' + c.department) + (deptDetailLabel ? ' – ' + deptDetailLabel : '');
   document.getElementById('ac-status-sel').value  = c.status;
+
+  const reporterInfoEl = document.getElementById('ac-reporter-info');
+  const anonNoticeEl   = document.getElementById('ac-anon-notice');
+  if (c.reporter_type === 'open') {
+    reporterInfoEl.innerHTML = `${t('reportType.t3title')}: <strong>${esc(c.reporter_name || '')}</strong>${c.reporter_phone ? ' · ' + esc(c.reporter_phone) : ''}`;
+    anonNoticeEl.style.display = 'none';
+  } else {
+    reporterInfoEl.textContent = c.reporter_type === 'anonymous_email' ? t('reportType.t2title') : t('reportType.t1title');
+    anonNoticeEl.style.display = 'flex';
+  }
+
+  const attWrap = document.getElementById('ac-attachments');
+  attWrap.innerHTML = '';
+  for (const a of (attachments || [])) {
+    const { data: signed } = await sb.storage.from('case-attachments').createSignedUrl(a.file_path, 3600);
+    const chip = el('a', 'attachment-chip');
+    chip.href = (signed && signed.signedUrl) || '#';
+    chip.target = '_blank';
+    chip.innerHTML = `📎 ${esc(a.file_name)}`;
+    attWrap.appendChild(chip);
+  }
+
   renderMsgs('admin-msgs', msgs || [], 'admin');
   document.getElementById('admin-reply-input').value = '';
 }
 
 async function handleAdminReply() {
   const text = val('admin-reply-input');
-  if (!text) return err('admin-reply-err', 'Skriv ett meddelande.');
+  if (!text) return err('admin-reply-err', t('err.writeMessage'));
   setBusy('btn-admin-reply', true);
-  const { error } = await sb.from('messages').insert({
-    case_id: activeCaseId, from_role: 'admin', text
-  });
+  const { error } = await sb.from('messages').insert({ case_id: activeCaseId, from_role: 'admin', text });
   setBusy('btn-admin-reply', false);
   if (error) return err('admin-reply-err', error.message);
-  sb.functions.invoke('notify', { body: { type: 'admin_reply', case_id: activeCaseId } });
+
+  // typ 1 (helt anonym) har ingen e-post att notifiera
+  const { data: c } = await sb.from('cases').select('reporter_type').eq('id', activeCaseId).single();
+  if (c && c.reporter_type !== 'anonymous_code') {
+    sb.functions.invoke('notify', { body: { type: 'admin_reply', case_id: activeCaseId } });
+  }
+
   document.getElementById('admin-reply-input').value = '';
   clearErrors();
   const { data: msgs } = await sb.from('messages').select('*')
@@ -474,7 +708,7 @@ async function handleStatusChange() {
 function renderMsgs(id, messages, perspective) {
   const c = document.getElementById(id);
   if (!messages.length) {
-    c.innerHTML = '<div style="text-align:center;color:var(--muted);padding:32px;font-size:14px;">Inga meddelanden ännu.</div>';
+    c.innerHTML = `<div style="text-align:center;color:var(--muted);padding:32px;font-size:14px;">${t('common.noMessages')}</div>`;
     return;
   }
   c.innerHTML = '';
@@ -483,7 +717,7 @@ function renderMsgs(id, messages, perspective) {
     const wrap = el('div', `msg ${own ? 'msg-own' : 'msg-other'}`);
     wrap.innerHTML = `
       <div class="bubble">
-        <div class="bubble-sender">${m.from_role === 'employee' ? 'Anonym anmälare' : 'Handläggare'}</div>
+        <div class="bubble-sender">${m.from_role === 'employee' ? t('common.reporter') : t('common.caseHandler')}</div>
         <div class="bubble-text">${esc(m.text)}</div>
         <div class="bubble-time">${fmt(m.created_at)}</div>
       </div>`;
@@ -493,48 +727,19 @@ function renderMsgs(id, messages, perspective) {
 }
 
 // ── HELPERS ───────────────────────────────────────────────────
-function el(tag, cls)  { const e = document.createElement(tag); e.className = cls; return e; }
-function val(id)       { return (document.getElementById(id)?.value || '').trim(); }
-function esc(str)      { const d = document.createElement('div'); d.textContent = str; return d.innerHTML.replace(/\n/g,'<br>'); }
-function clearErrors() { document.querySelectorAll('.error-msg').forEach(e => { e.style.display='none'; e.textContent=''; }); }
-function err(id, msg)  { const e = document.getElementById(id); if(e){ e.textContent=msg; e.style.display='block'; } }
-function fmt(ts)       { return new Date(ts).toLocaleString('sv-SE', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }); }
-function statusSv(s)   { return { open:'Öppen', investigating:'Under utredning', resolved:'Avslutad' }[s] || s; }
-function catSv(c)      {
-  return {
-    harassment: 'Trakasserier / Mobbning', discrimination: 'Diskriminering',
-    safety: 'Arbetsmiljö & säkerhet',      fraud: 'Ekonomiska oegentligheter',
-    corruption: 'Korruption / Mutor',      compliance: 'Lagstiftning / Regelefterlevnad',
-    other: 'Övrigt'
-  }[c] || c;
+function el(tag, className) { const e = document.createElement(tag); if (className) e.className = className; return e; }
+function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+function fmt(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString(currentLang === 'en' ? 'en-GB' : 'sv-SE', { day: 'numeric', month: 'short', year: 'numeric' }) +
+    ' ' + d.toLocaleTimeString(currentLang === 'en' ? 'en-GB' : 'sv-SE', { hour: '2-digit', minute: '2-digit' });
 }
-
-// ── INIT ──────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  sb.auth.onAuthStateChange(async (event, session) => {
-    if (event === 'PASSWORD_RECOVERY') {
-      // User clicked the reset link in their email — show "set new password" form
-      show('view-reset-password');
-    } else if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
-      await loadUserContext(session);
-    } else if (event === 'SIGNED_OUT') {
-      me = null; meType = null; activeCaseId = null; selectedRecip = null;
-      showLanding('anmal');
-    }
-  });
-
-  document.getElementById('btn-logout').addEventListener('click', () => sb.auth.signOut());
-
-  document.getElementById('reg-pw2')?.addEventListener('keydown',  e => { if(e.key==='Enter') handleSendCode(); });
-  document.getElementById('emp-pw')?.addEventListener('keydown',   e => { if(e.key==='Enter') handleEmpLogin(); });
-  document.getElementById('admin-pw')?.addEventListener('keydown', e => { if(e.key==='Enter') handleAdminLogin(); });
-  ['emp-reply-input', 'admin-reply-input'].forEach(id => {
-    document.getElementById(id)?.addEventListener('keydown', e => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        id === 'emp-reply-input' ? handleEmpReply() : handleAdminReply();
-      }
-    });
-  });
-
-  showLanding('anmal');
-});
+function val(id) { return (document.getElementById(id).value || '').trim(); }
+function err(id, msg) { const e = document.getElementById(id); if (!e) return; e.textContent = msg; e.style.display = 'block'; }
+function clearErrors() { document.querySelectorAll('.error-msg').forEach(e => { e.style.display = 'none'; }); }
+function setBusy(btnId, busy) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.disabled = busy;
+  btn.style.opacity = busy ? '0.6' : '1';
+}

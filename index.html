@@ -11,25 +11,23 @@
 <!-- ── HEADER ─────────────────────────────────────────────── -->
 <header id="header">
   <div class="header-inner">
-    <div class="logo">
-      <img class="logo-img" src="https://www.jenseneducation.se/themes/custom/jensen/css/graphics/logo-gold-jensen-education.svg" alt="JENSEN education">
+    <div class="logo" onclick="showLanding()" style="cursor:pointer;">
+      <img class="logo-img" src="website_colors_and_logo/JENSEN_logo.png" alt="JENSEN">
       <div class="logo-wordmark">
         <span class="logo-jensen">JENSEN</span>
         <span class="logo-subtitle">Whistleblower</span>
       </div>
     </div>
 
-    <nav id="tab-nav">
-      <button class="tab-btn active" data-tab="anmal" onclick="handleTab('anmal')">Anmäl ärende</button>
-      <button class="tab-btn" data-tab="mina" onclick="handleTab('mina')">Mina ärenden</button>
-      <button class="tab-btn" data-tab="kontakter" onclick="handleTab('kontakter')">Kontakter</button>
-      <button class="tab-btn" data-tab="skydd" onclick="handleTab('skydd')">Dina rättigheter</button>
-      <button class="tab-btn" data-tab="admin" onclick="handleTab('admin')">HR &amp; Admin</button>
-    </nav>
-
-    <div style="display:flex;align-items:center;gap:16px;">
+    <div class="header-actions">
+      <div class="lang-toggle">
+        <button class="lang-btn active" data-lang="sv" onclick="setLang('sv')">SV</button>
+        <span class="lang-sep">/</span>
+        <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+      </div>
       <div id="header-profile" style="display:none;"></div>
-      <button id="btn-logout" class="btn btn-outline" style="display:none;">Logga ut</button>
+      <button id="btn-logout" class="btn btn-outline" style="display:none;" onclick="handleLogout()" data-i18n="header.logout">Logga ut</button>
+      <a href="#" class="admin-link" id="admin-link" onclick="showAdminLogin();return false;" data-i18n="header.adminLogin">HR &amp; Admin</a>
     </div>
   </div>
 </header>
@@ -37,320 +35,316 @@
 <main>
 
   <!-- ═══════════════════════════════════════════════════════ -->
-  <!-- LANDING (TAB PANELS)                                   -->
+  <!-- LANDING                                                 -->
   <!-- ═══════════════════════════════════════════════════════ -->
   <div class="view" id="view-landing">
+    <div class="landing-grid">
 
-    <!-- Panel: Anmäl ärende -->
-    <div class="tab-panel active" id="panel-anmal">
-      <div class="landing-panel">
-        <div class="panel-icon"><img src="website_colors_and_logo/Shield.png" alt="Skydd" style="width:54px;height:54px;object-fit:contain;"></div>
-        <h1><em>Anmäl ett</em> ärende anonymt</h1>
-        <p class="lead">
-          Som medarbetare på JENSEN kan du tryggt rapportera missförhållanden, trakasserier
-          eller andra oegentligheter. Registrera dig med din <strong>@jenseneducation.se</strong>-adress
-          och välj ett lösenord – det är allt som krävs. Din identitet skyddas fullständigt;
-          mottagaren ser aldrig ditt namn, enbart ett anonymt ärendenummer.
-        </p>
-        <div class="panel-actions">
-          <button class="btn btn-gold" onclick="showEmpRegister()">Skapa konto &amp; anmäl</button>
-          <button class="btn btn-ghost" onclick="showEmpLogin()">Jag har redan ett konto</button>
-        </div>
-        <div class="trust-items">
-          <div class="trust-item"><span class="trust-icon">🔒</span><span>Din identitet skyddas</span></div>
-          <div class="trust-item"><span class="trust-icon">🪪</span><span>Mottagaren ser bara ett anonymt ID</span></div>
-          <div class="trust-item"><span class="trust-icon">💬</span><span>Tvåvägskommunikation anonymt</span></div>
-          <div class="trust-item"><span class="trust-icon">⚖️</span><span>Skyddad av visselblåsarlagen</span></div>
+      <div class="landing-main">
+        <h1 data-i18n="landing.title">Välkommen till vår rapporteringskanal</h1>
+        <p data-i18n="landing.p1">Vår interna rapporteringskanal, så kallad visselblåsarfunktion, kan du använda för att rapportera misstankar om oegentligheter i vår organisation.</p>
+        <p data-i18n="landing.p2">Visselblåsarfunktionen syftar till att förbättra möjligheten att avslöja olika former av missförhållanden och till att ge ett utökat skydd för den som rapporterar. Vi garanterar att ditt ärende samt din identitet behandlas konfidentiellt och du har också ett skydd mot repressalier.</p>
+
+        <h2 data-i18n="landing.whatTitle">Vad kan du rapportera om?</h2>
+        <p data-i18n="landing.whatP1">När du lämnar in en rapport bör du ha goda anledningar att tro att den information du har kännedom om är sann vid tidpunkten för rapporteringen.</p>
+        <p data-i18n="landing.whatP2">Syftet med rapportkanalen är att förebygga och upptäcka bedrägeri och korruption, olaglig verksamhet samt bristande efterlevnad av regler inom en rad områden. Det kan också vara illegala, oetiska eller skadliga aktiviteter som kan påverka andra negativt, till exempel:</p>
+        <ul class="landing-list">
+          <li data-i18n="landing.whatLi1">Ekonomisk brottslighet och bedrägeri</li>
+          <li data-i18n="landing.whatLi2">Korruption och mutor</li>
+          <li data-i18n="landing.whatLi3">Miljöbrott eller säkerhetsrisker rörande liv och hälsa</li>
+          <li data-i18n="landing.whatLi4">Medvetna lagöverträdelser</li>
+        </ul>
+        <p data-i18n="landing.whatP3">Missförhållandet behöver inte vara aktuellt eller pågående, det kan även gälla rapportering av avslutade missförhållanden.</p>
+        <p data-i18n="landing.whatP4">Syftet med tjänsten är inte att fånga upp missnöje med arbetsförhållanden, organisation eller chefskap eller konflikter på arbetsplatsen. Rapportering av missförhållanden som uteslutande påverkar visselblåsaren eller dennes arbetssituation bedöms som regel inte vara ett visselblåsarärende.</p>
+
+        <h2 data-i18n="landing.reportTitle">Din rapport</h2>
+        <p data-i18n="landing.reportP1">Din rapport ska innehålla följande information:</p>
+        <ul class="landing-list">
+          <li data-i18n="landing.reportLi1">Vilken typ av oegentlighet du vill rapportera.</li>
+          <li data-i18n="landing.reportLi2">Var det skedde.</li>
+          <li data-i18n="landing.reportLi3">När det hände. Ange datum och klockslag och om det är något som har hänt upprepade gånger.</li>
+          <li data-i18n="landing.reportLi4">Eventuell dokumentation som du har tillgång till.</li>
+          <li data-i18n="landing.reportLi5">Information om andra åtgärder som du eventuellt har vidtagit i samband med det som har hänt.</li>
+        </ul>
+        <p class="landing-note" data-i18n="landing.reportNote">Obs! Du ska inte skicka in några personuppgifter som saknar avgörande betydelse för rapporten. Om du ändå skickar in sådana uppgifter kan vi komma att radera dem utan att informera dig.</p>
+
+        <h2 data-i18n="landing.anonTitle">Anonym eller konfidentiell rapportering</h2>
+        <p data-i18n="landing.anonP1">Du har möjlighet att välja mellan anonym rapportering eller att ange ditt namn och dina kontaktuppgifter när du skickar in en rapport. Läs mer om de tre alternativen när du klickar på "Skapa ny rapport".</p>
+      </div>
+
+      <div class="landing-sidebar">
+        <button class="btn btn-navy btn-full" onclick="startNewReport()" data-i18n="landing.newReport">Skapa ny rapport →</button>
+        <button class="btn btn-outline-navy btn-full" onclick="showFollowUp()" data-i18n="landing.followUp">Följ upp ärende</button>
+        <a href="#" class="sidebar-link" onclick="showLanding('skydd');return false;" data-i18n="landing.integrity">Integritetsinformation →</a>
+
+        <div class="sidebar-section">
+          <p class="sidebar-label" data-i18n="landing.channelsTitle">Våra rapporteringskanaler</p>
+          <div class="channel-item">
+            <span class="channel-icon">💻</span>
+            <span data-i18n="landing.channelForm">Formulär på denna sida</span>
+          </div>
+          <div class="channel-item">
+            <span class="channel-icon">📞</span>
+            <a href="#" onclick="showLanding('kontakter');return false;" data-i18n="landing.channelDirect">Vill du prata med någon direkt istället? Klicka här</a>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Panel: Mina ärenden -->
-    <div class="tab-panel" id="panel-mina">
-      <div class="landing-panel">
-        <div class="panel-icon">📋</div>
-        <h1><em>Följ upp</em> ditt ärende</h1>
-        <p class="lead">
-          Logga in för att se status på dina ärenden och läsa svar från HR
-          eller din chef. Allt sker under ditt anonyma ärendenummer.
-        </p>
-        <div class="panel-actions">
-          <button class="btn btn-gold" onclick="showEmpLogin()">Logga in som medarbetare</button>
-          <button class="btn btn-ghost" onclick="showEmpRegister()">Skapa konto</button>
-        </div>
-        <div class="trust-items">
-          <div class="trust-item"><span class="trust-icon">🔄</span><span>Svar direkt i ärendet</span></div>
-          <div class="trust-item"><span class="trust-icon">📊</span><span>Se ärendestatus i realtid</span></div>
-          <div class="trust-item"><span class="trust-icon">🗂️</span><span>Alla dina ärenden samlade</span></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Panel: Admin -->
-    <div class="tab-panel" id="panel-admin">
-      <div class="landing-panel">
-        <div class="panel-icon">🔒</div>
-        <h1><em>HR &amp;</em> administratörsportal</h1>
-        <p class="lead">
-          Denna portal är för HR-personal, chefer och administratörer.
-          Logga in för att hantera inkomna ärenden. Anmälarnas identitet
-          är alltid dold – du ser enbart ett anonymt ärendenummer.
-        </p>
-        <div class="panel-actions">
-          <button class="btn btn-gold" onclick="showAdminLogin()">Logga in som admin / HR</button>
-        </div>
-        <div class="trust-items">
-          <div class="trust-item"><span class="trust-icon">👤</span><span>Anmälarens identitet visas aldrig</span></div>
-          <div class="trust-item"><span class="trust-icon">📬</span><span>Svara direkt i ärendet</span></div>
-          <div class="trust-item"><span class="trust-icon">📁</span><span>Hantera och avsluta ärenden</span></div>
-        </div>
-      </div>
-    </div>
-    <!-- Panel: Kontakter -->
+    <!-- Panel: Kontakter (endast Ulrika + Leif, enligt HR-spec) -->
     <div class="tab-panel" id="panel-kontakter">
       <div class="landing-panel kontakter-panel">
-        <h1><em>Kontakta</em> HR &amp; ledning</h1>
-        <p class="lead">Vill du ta direkt kontakt med HR eller din chef? Nedan hittar du kontaktuppgifter. Kom ihåg att du alltid kan anmäla anonymt via fliken "Anmäl ärende".</p>
+        <h1><em data-i18n="contact.titleEm">Prata</em> <span data-i18n="contact.titleRest">med någon direkt</span></h1>
+        <p class="lead" data-i18n="contact.lead">Föredrar du att prata direkt med en person istället för att skicka in en anmälan via formuläret? Här är kontaktuppgifterna till HR-chef och kvalitetschef.</p>
 
-        <!-- HR-raden -->
-        <div class="contact-grid contact-grid-hr">
-
+        <div class="contact-grid">
           <div class="contact-card">
             <img src="Pictures_of_HR_contacts/Ulrika_boss.png" alt="Ulrika Westerström">
             <div class="contact-info">
               <div class="contact-name">Ulrika Westerström</div>
-              <div class="contact-role">HR-chef</div>
+              <div class="contact-role" data-i18n="contact.ulrikaRole">HR-chef — övergripande ansvarig för HR och lön</div>
               <div class="contact-phone">0706 62 95 65</div>
               <a class="contact-email" href="mailto:ulrika.westerstrom@jenseneducation.se">ulrika.westerstrom@jenseneducation.se</a>
-              <span class="r-badge badge-hr">HR</span>
             </div>
           </div>
-
-          <div class="contact-card">
-            <img src="Pictures_of_HR_contacts/Rikard_HR.png" alt="Rikard Östrup">
-            <div class="contact-info">
-              <div class="contact-name">Rikard Östrup</div>
-              <div class="contact-role">HR-partner</div>
-              <div class="contact-phone">073 773 32 06</div>
-              <a class="contact-email" href="mailto:rikard.ostrup@jenseneducation.se">rikard.ostrup@jenseneducation.se</a>
-              <span class="r-badge badge-hr">HR</span>
-            </div>
-          </div>
-
-          <div class="contact-card">
-            <img src="Pictures_of_HR_contacts/Irina_HR.png" alt="Irina Dahlquist">
-            <div class="contact-info">
-              <div class="contact-name">Irina Dahlquist</div>
-              <div class="contact-role">HR-partner</div>
-              <div class="contact-phone">&nbsp;</div>
-              <a class="contact-email" href="mailto:irina.dahlquist@jenseneducation.se">irina.dahlquist@jenseneducation.se</a>
-              <span class="r-badge badge-hr">HR</span>
-            </div>
-          </div>
-
-        </div>
-
-        <!-- Kvalitetsstaben -->
-        <div class="contact-grid contact-grid-mgmt" style="margin-top:32px;">
-
           <div class="contact-card">
             <img src="Pictures_of_HR_contacts/Leif_Boss.png" alt="Leif Glavå">
             <div class="contact-info">
               <div class="contact-name">Leif Glavå</div>
-              <div class="contact-role">Kvalitets- och utvecklingschef</div>
+              <div class="contact-role" data-i18n="contact.leifRole">Kvalitets- och utvecklingschef — ansvarig för kvalitetsfrågor, internutbildning och anbud</div>
               <div class="contact-phone">0708 15 66 89</div>
               <a class="contact-email" href="mailto:leif.glava@jenseneducation.se">leif.glava@jenseneducation.se</a>
-              <span class="r-badge badge-mgmt">Kvalitet</span>
             </div>
           </div>
-
-          <div class="contact-card">
-            <img src="Pictures_of_HR_contacts/Dennis_quality.png" alt="Dennis Roslinde">
-            <div class="contact-info">
-              <div class="contact-name">Dennis Roslinde</div>
-              <div class="contact-role">Kvalitetsanalytiker &amp; admin för Whistleblower</div>
-              <div class="contact-phone">0737 73 31 91</div>
-              <a class="contact-email" href="mailto:dennis.roslinde@jenseneducation.se">dennis.roslinde@jenseneducation.se</a>
-              <span class="r-badge badge-admin">Admin</span>
-            </div>
-          </div>
-
-        </div>
-
-        <div class="trust-items" style="margin-top:40px;">
-          <div class="trust-item"><span class="trust-icon">🔒</span><span>Vill du vara anonym? Använd "Anmäl ärende"</span></div>
-          <div class="trust-item"><span class="trust-icon">⚖️</span><span>Du är skyddad av visselblåsarlagen</span></div>
         </div>
       </div>
     </div>
 
-    <!-- Panel: Skydd / Dina rättigheter -->
+    <!-- Panel: Dina rättigheter -->
     <div class="tab-panel" id="panel-skydd">
       <div class="landing-panel skydd-panel">
-        <h1><em>Dina</em> rättigheter</h1>
-        <p class="lead">Lag (2021:890) om skydd för personer som rapporterar om missförhållanden — en sammanfattning av vad lagen innebär för dig som anställd på JENSEN.</p>
+        <h1><em data-i18n="law.titleEm">Dina</em> <span data-i18n="law.titleRest">rättigheter</span></h1>
+        <p class="lead" data-i18n="law.lead">Lag (2021:890) om skydd för personer som rapporterar om missförhållanden — en sammanfattning av vad lagen innebär för dig som anställd på JENSEN.</p>
 
         <div class="law-grid">
-
           <div class="law-card">
             <div class="law-icon">🛡️</div>
-            <h3>Vem skyddas?</h3>
-            <p>Du skyddas om du är anställd, praktikant, volontär, konsult eller f.d. anställd hos JENSEN. Skyddet gäller även den som sökt ett jobb och rapporterar om missförhållanden de fått kännedom om under rekryteringsprocessen.</p>
+            <h3 data-i18n="law.c1title">Vem skyddas?</h3>
+            <p data-i18n="law.c1text">Du skyddas om du är anställd, praktikant, volontär, konsult eller f.d. anställd hos JENSEN. Skyddet gäller även den som sökt ett jobb och rapporterar om missförhållanden de fått kännedom om under rekryteringsprocessen.</p>
           </div>
-
           <div class="law-card">
             <div class="law-icon">📋</div>
-            <h3>Vad kan rapporteras?</h3>
-            <p>Missförhållanden av allmänintresse – till exempel brott mot lagar och regler, korruption, säkerhetsrisker, diskriminering, trakasserier eller andra allvarliga oegentligheter inom organisationen.</p>
+            <h3 data-i18n="law.c2title">Vad kan rapporteras?</h3>
+            <p data-i18n="law.c2text">Missförhållanden av allmänintresse – till exempel brott mot lagar och regler, korruption, säkerhetsrisker, diskriminering, trakasserier eller andra allvarliga oegentligheter inom organisationen.</p>
           </div>
-
           <div class="law-card">
             <div class="law-icon">🚫</div>
-            <h3>Förbjudna repressalier</h3>
-            <p>Arbetsgivaren får <strong>inte</strong> vidta åtgärder som bestraffar dig för att du rapporterat. Förbudet gäller uppsägning, degradering, lönesänkning, förändrade arbetsuppgifter, trakasserier, negativt omdöme eller utfrysning.</p>
+            <h3 data-i18n="law.c3title">Förbjudna repressalier</h3>
+            <p data-i18n="law.c3text">Arbetsgivaren får inte vidta åtgärder som bestraffar dig för att du rapporterat: uppsägning, degradering, lönesänkning, förändrade arbetsuppgifter, trakasserier, negativt omdöme eller utfrysning.</p>
           </div>
-
           <div class="law-card">
             <div class="law-icon">⚖️</div>
-            <h3>Omvänd bevisbörda</h3>
-            <p>Om du påstår att du utsatts för repressalier på grund av din rapport, är det <strong>arbetsgivaren</strong> som måste bevisa att åtgärden inte hade något samband med din rapportering – inte du.</p>
+            <h3 data-i18n="law.c4title">Omvänd bevisbörda</h3>
+            <p data-i18n="law.c4text">Om du påstår att du utsatts för repressalier, är det arbetsgivaren som måste bevisa att åtgärden inte hade något samband med din rapportering — inte du.</p>
           </div>
-
           <div class="law-card">
             <div class="law-icon">🔒</div>
-            <h3>Anonymitet och sekretess</h3>
-            <p>Din identitet ska skyddas i rapporteringsprocessen. Intern personal som hanterar ärenden är bunden av tystnadsplikt och får inte röja vem som lämnat rapporten.</p>
+            <h3 data-i18n="law.c5title">Anonymitet och sekretess</h3>
+            <p data-i18n="law.c5text">Din identitet ska skyddas i rapporteringsprocessen. Personal som hanterar ärenden är bunden av tystnadsplikt och får inte röja vem som lämnat rapporten.</p>
           </div>
-
           <div class="law-card">
             <div class="law-icon">⏱️</div>
-            <h3>Tidsfrister för svar</h3>
-            <p>Organisationen ska bekräfta att din rapport mottagits inom <strong>7 dagar</strong>. Du ska sedan få återkoppling om ärendets handläggning och utfall inom <strong>3 månader</strong>.</p>
+            <h3 data-i18n="law.c6title">Tidsfrister för svar</h3>
+            <p data-i18n="law.c6text">Organisationen ska bekräfta att din rapport mottagits inom 7 dagar, och ge dig återkoppling om ärendets handläggning och utfall inom 3 månader.</p>
           </div>
-
           <div class="law-card">
             <div class="law-icon">📣</div>
-            <h3>Tre rapporteringsvägar</h3>
-            <p><strong>1. Internt</strong> – via denna tjänst direkt till HR/ledning.<br>
-               <strong>2. Externt</strong> – till behörig tillsynsmyndighet (t.ex. Arbetsmiljöverket, Ekobrottsmyndigheten).<br>
-               <strong>3. Offentliggörande</strong> – till media, som sista utväg om de andra kanalerna inte fungerat.</p>
+            <h3 data-i18n="law.c7title">Tre rapporteringsvägar</h3>
+            <p data-i18n="law.c7text">Internt via denna tjänst, externt till en behörig tillsynsmyndighet, eller — som sista utväg — genom offentliggörande.</p>
           </div>
-
           <div class="law-card">
             <div class="law-icon">💰</div>
-            <h3>Skadestånd</h3>
-            <p>Om du utsätts för repressalier i strid med lagen har du rätt till skadestånd – både för ekonomisk förlust och för kränkning. Arbetsgivaren kan även dömas att betala allmänt skadestånd.</p>
+            <h3 data-i18n="law.c8title">Skadestånd</h3>
+            <p data-i18n="law.c8text">Om du utsätts för repressalier i strid med lagen har du rätt till skadestånd, både för ekonomisk förlust och för kränkning.</p>
           </div>
-
         </div>
 
         <div class="law-footer">
-          <p>Fullständig lagtext: <a href="https://www.riksdagen.se/sv/dokument-och-lagar/dokument/svensk-forfattningssamling/lag-2021890-om-skydd-for-personer-som_sfs-2021-890/" target="_blank" rel="noopener">SFS 2021:890 på riksdagen.se</a></p>
+          <span data-i18n="law.fullText">Fullständig lagtext:</span>
+          <a href="https://www.riksdagen.se/sv/dokument-och-lagar/dokument/svensk-forfattningssamling/lag-2021890-om-skydd-for-personer-som_sfs-2021-890/" target="_blank" rel="noopener">SFS 2021:890 på riksdagen.se</a>
         </div>
       </div>
     </div>
-
   </div><!-- /view-landing -->
 
 
   <!-- ═══════════════════════════════════════════════════════ -->
-  <!-- EMPLOYEE REGISTER                                      -->
+  <!-- REPORT TYPE SELECTION                                  -->
   <!-- ═══════════════════════════════════════════════════════ -->
-  <div class="view" id="view-emp-register">
-    <div class="form-wrap">
-      <button class="btn-back" onclick="showLanding('anmal')">← Tillbaka</button>
+  <div class="view" id="view-report-type">
+    <div class="form-wrap form-wrap-wide">
+      <button class="btn-back" onclick="showLanding()" data-i18n="back.landing">← Tillbaka</button>
+      <h1 data-i18n="reportType.title">Hur vill du rapportera?</h1>
+      <p class="form-subtitle" data-i18n="reportType.subtitle">Välj det alternativ som passar dig bäst. Du kan alltid välja mer öppenhet senare, men aldrig mindre.</p>
 
-      <!-- Steg 1: Uppgifter -->
-      <div id="reg-step1">
-        <h1>Skapa konto</h1>
-        <p class="form-subtitle">
-          Du kan använda <strong>vilken e-postadress som helst</strong> – till exempel en slumpmässig
-          Gmail-adress om du vill vara extra försiktig. Vi sparar din e-post för två ändamål:
-          ett verifieringsmejl skickas direkt, och du får en notis när HR eller din chef svarar på din anmälan.
-          <strong>Din e-post visas aldrig för mottagaren</strong> – de ser enbart ett anonymt ärendenummer.
-        </p>
-
-        <div class="form-group">
-          <label for="reg-email">JENSEN-e-postadress</label>
-          <input type="email" id="reg-email" placeholder="ditt.namn@jenseneducation.se" autocomplete="email">
+      <div class="type-cards">
+        <div class="type-card" onclick="selectReportType('anonymous_code')">
+          <div class="type-icon">🕶️</div>
+          <h3 data-i18n="reportType.t1title">Helt anonym</h3>
+          <p data-i18n="reportType.t1desc">Ingen e-post eller personuppgift krävs. Du får en unik kod direkt efter att du skickat in — spara den, den är enda vägen tillbaka till ditt ärende.</p>
         </div>
-        <div class="form-group">
-          <label for="reg-pw">Lösenord</label>
-          <input type="password" id="reg-pw" placeholder="Minst 8 tecken" autocomplete="new-password">
+        <div class="type-card" onclick="selectReportType('anonymous_email')">
+          <div class="type-icon">📧</div>
+          <h3 data-i18n="reportType.t2title">Anonym med e-postnotiser</h3>
+          <p data-i18n="reportType.t2desc">Du skapar ett konto med valfri e-post (gärna inte din jobbmail). Din identitet är fortsatt dold för HR — de ser bara ärendenumret — men du får notiser när någon svarar.</p>
         </div>
-        <div class="form-group">
-          <label for="reg-pw2">Bekräfta lösenord</label>
-          <input type="password" id="reg-pw2" placeholder="Upprepa lösenordet" autocomplete="new-password">
+        <div class="type-card" onclick="selectReportType('open')">
+          <div class="type-icon">🪪</div>
+          <h3 data-i18n="reportType.t3title">Öppen anmälare</h3>
+          <p data-i18n="reportType.t3desc">Du anger namn, e-post och ev. telefonnummer. HR ser vem du är, vilket kan underlätta utredningen.</p>
         </div>
-
-        <div class="error-msg" id="reg-err"></div>
-        <button id="btn-send-code" class="btn btn-gold btn-full" onclick="handleSendCode()">Skapa konto →</button>
-        <p class="form-link">Har du redan ett konto? <a href="#" onclick="showEmpLogin();return false;">Logga in här</a></p>
-      </div>
-
-      <!-- Steg 2: Kontrollera inkorgen -->
-      <div id="reg-step2" style="display:none;">
-        <div style="text-align:center;font-size:48px;margin-bottom:16px;">✉️</div>
-        <h1>Kontrollera din inkorg!</h1>
-        <p class="form-subtitle">
-          Vi har skickat ett verifieringsmail till <strong id="reg-sent-to"></strong>.
-          Klicka på länken i mailet för att aktivera ditt konto, och logga sedan in här.
-        </p>
-        <button class="btn btn-gold btn-full" onclick="showEmpLogin()">Gå till inloggning</button>
-        <p class="form-link" style="margin-top:12px;">
-          <a href="#" onclick="resetRegForm();return false;">← Ändra e-postadress</a>
-        </p>
       </div>
     </div>
   </div>
 
 
   <!-- ═══════════════════════════════════════════════════════ -->
-  <!-- EMPLOYEE LOGIN                                         -->
+  <!-- REGISTER (typ 2 & 3 – konto krävs)                     -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="view" id="view-emp-register">
+    <div class="form-wrap">
+      <button class="btn-back" onclick="show('view-report-type')" data-i18n="back.type">← Tillbaka</button>
+
+      <div id="reg-step1">
+        <h1 data-i18n="register.title">Skapa konto</h1>
+        <p class="form-subtitle" id="reg-subtitle" data-i18n="register.subtitleAnon">
+          Du kan använda vilken e-postadress som helst. Vi sparar den för att skicka verifieringsmejl och notiser när HR svarar — den visas aldrig för mottagaren, bara ditt anonyma ärendenummer.
+        </p>
+
+        <div class="form-group" id="reg-name-group" style="display:none;">
+          <label for="reg-name" data-i18n="register.name">Namn</label>
+          <input type="text" id="reg-name" data-i18n-placeholder="register.namePh" placeholder="För- och efternamn">
+        </div>
+        <div class="form-group">
+          <label for="reg-email" data-i18n="register.email">E-postadress</label>
+          <input type="email" id="reg-email" data-i18n-placeholder="register.emailPh" placeholder="din@epost.se" autocomplete="email">
+        </div>
+        <div class="form-group" id="reg-phone-group" style="display:none;">
+          <label for="reg-phone" data-i18n="register.phone">Telefonnummer (valfritt)</label>
+          <input type="tel" id="reg-phone" data-i18n-placeholder="register.phonePh" placeholder="07X-XXX XX XX">
+        </div>
+        <div class="form-group">
+          <label for="reg-pw" data-i18n="register.pw">Lösenord</label>
+          <input type="password" id="reg-pw" data-i18n-placeholder="register.pwPh" placeholder="Minst 8 tecken" autocomplete="new-password">
+        </div>
+        <div class="form-group">
+          <label for="reg-pw2" data-i18n="register.pw2">Bekräfta lösenord</label>
+          <input type="password" id="reg-pw2" data-i18n-placeholder="register.pw2Ph" placeholder="Upprepa lösenordet" autocomplete="new-password">
+        </div>
+
+        <div class="error-msg" id="reg-err"></div>
+        <button id="btn-send-code" class="btn btn-gold btn-full" onclick="handleSendCode()" data-i18n="register.submit">Skapa konto →</button>
+        <p class="form-link" data-i18n="register.haveAccount">Har du redan ett konto? <a href="#" onclick="showEmpLogin();return false;" data-i18n="register.loginHere">Logga in här</a></p>
+      </div>
+
+      <div id="reg-step2" style="display:none;">
+        <div style="text-align:center;font-size:48px;margin-bottom:16px;">✉️</div>
+        <h1 data-i18n="register.checkInbox">Kontrollera din inkorg!</h1>
+        <p class="form-subtitle" data-i18n="register.checkInboxSub">
+          Vi har skickat ett verifieringsmail till <strong id="reg-sent-to"></strong>. Klicka på länken i mailet för att aktivera ditt konto, och logga sedan in här.
+        </p>
+        <button class="btn btn-gold btn-full" onclick="showEmpLogin()" data-i18n="register.goToLogin">Gå till inloggning</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- FOLLOW UP – välj metod                                 -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="view" id="view-followup-choice">
+    <div class="form-wrap form-wrap-wide">
+      <button class="btn-back" onclick="showLanding()" data-i18n="back.landing">← Tillbaka</button>
+      <h1 data-i18n="followup.title">Följ upp ditt ärende</h1>
+      <p class="form-subtitle" data-i18n="followup.subtitle">Hur skickade du in din anmälan?</p>
+
+      <div class="type-cards type-cards-2">
+        <div class="type-card" onclick="show('view-anon-code-entry')">
+          <div class="type-icon">🔑</div>
+          <h3 data-i18n="followup.codeTitle">Med en kod</h3>
+          <p data-i18n="followup.codeDesc">Jag anmälde helt anonymt och har en åtkomstkod.</p>
+        </div>
+        <div class="type-card" onclick="showEmpLogin()">
+          <div class="type-icon">🔐</div>
+          <h3 data-i18n="followup.loginTitle">Med konto</h3>
+          <p data-i18n="followup.loginDesc">Jag skapade ett konto med e-post och lösenord.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Kod-inmatning (typ 1) -->
+  <div class="view" id="view-anon-code-entry">
+    <div class="form-wrap">
+      <button class="btn-back" onclick="show('view-followup-choice')" data-i18n="back.followup">← Tillbaka</button>
+      <h1 data-i18n="codeEntry.title">Ange din åtkodskod</h1>
+      <p class="form-subtitle" data-i18n="codeEntry.subtitle">Koden du fick när du skickade in din anonyma anmälan.</p>
+      <div class="form-group">
+        <label for="access-code-input" data-i18n="codeEntry.label">Åtkomstkod</label>
+        <input type="text" id="access-code-input" data-i18n-placeholder="codeEntry.placeholder" placeholder="t.ex. Xk9aB3mP...">
+      </div>
+      <div class="error-msg" id="code-entry-err"></div>
+      <button id="btn-code-entry" class="btn btn-gold btn-full" onclick="handleCodeEntry()" data-i18n="codeEntry.submit">Visa mitt ärende</button>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- LOGIN (typ 2 & 3)                                      -->
   <!-- ═══════════════════════════════════════════════════════ -->
   <div class="view" id="view-emp-login">
     <div class="form-wrap">
-      <button class="btn-back" onclick="showLanding('mina')">← Tillbaka</button>
-      <h1>Logga in</h1>
-      <p class="form-subtitle">Logga in för att skicka en ny anmälan eller följa upp befintliga ärenden.</p>
+      <button class="btn-back" onclick="showLanding()" data-i18n="back.landing">← Tillbaka</button>
+      <h1 data-i18n="login.title">Logga in</h1>
+      <p class="form-subtitle" data-i18n="login.subtitle">Logga in för att skicka en ny anmälan eller följa upp befintliga ärenden.</p>
 
       <div class="form-group">
-        <label for="emp-email">E-postadress</label>
-        <input type="email" id="emp-email" placeholder="ditt.namn@jenseneducation.se" autocomplete="email">
+        <label for="emp-email" data-i18n="login.email">E-postadress</label>
+        <input type="email" id="emp-email" data-i18n-placeholder="login.emailPh" placeholder="din@epost.se" autocomplete="email">
       </div>
       <div class="form-group">
-        <label for="emp-pw">Lösenord</label>
-        <input type="password" id="emp-pw" placeholder="Ditt lösenord" autocomplete="current-password">
+        <label for="emp-pw" data-i18n="login.pw">Lösenord</label>
+        <input type="password" id="emp-pw" data-i18n-placeholder="login.pwPh" placeholder="Ditt lösenord" autocomplete="current-password">
       </div>
 
       <div class="error-msg" id="emp-err"></div>
-      <button id="btn-emp-login" class="btn btn-gold btn-full" onclick="handleEmpLogin()">Logga in</button>
+      <button id="btn-emp-login" class="btn btn-gold btn-full" onclick="handleEmpLogin()" data-i18n="login.submit">Logga in</button>
       <p class="form-link">
-        Inget konto? <a href="#" onclick="showEmpRegister();return false;">Skapa ett här</a>
+        <span data-i18n="login.noAccount">Inget konto?</span> <a href="#" onclick="startNewReport();return false;" data-i18n="login.createHere">Skapa ett här</a>
         &nbsp;·&nbsp;
-        <a href="#" onclick="handleForgotPassword();return false;">Glömt lösenord?</a>
+        <a href="#" onclick="handleForgotPassword();return false;" data-i18n="login.forgot">Glömt lösenord?</a>
       </p>
     </div>
   </div>
 
 
   <!-- ═══════════════════════════════════════════════════════ -->
-  <!-- RESET PASSWORD (länk från mejl)                       -->
+  <!-- RESET PASSWORD                                         -->
   <!-- ═══════════════════════════════════════════════════════ -->
   <div class="view" id="view-reset-password">
     <div class="form-wrap">
-      <h1>Välj nytt lösenord</h1>
-      <p class="form-subtitle">Ange ett nytt lösenord för ditt JENSEN-konto.</p>
+      <h1 data-i18n="reset.title">Välj nytt lösenord</h1>
+      <p class="form-subtitle" data-i18n="reset.subtitle">Ange ett nytt lösenord för ditt konto.</p>
       <div class="form-group">
-        <label for="new-pw">Nytt lösenord</label>
-        <input type="password" id="new-pw" placeholder="Minst 8 tecken" autocomplete="new-password">
+        <label for="new-pw" data-i18n="reset.newPw">Nytt lösenord</label>
+        <input type="password" id="new-pw" data-i18n-placeholder="reset.newPwPh" placeholder="Minst 8 tecken" autocomplete="new-password">
       </div>
       <div class="form-group">
-        <label for="new-pw2">Bekräfta lösenord</label>
-        <input type="password" id="new-pw2" placeholder="Upprepa lösenordet" autocomplete="new-password">
+        <label for="new-pw2" data-i18n="reset.newPw2">Bekräfta lösenord</label>
+        <input type="password" id="new-pw2" data-i18n-placeholder="reset.newPw2Ph" placeholder="Upprepa lösenordet" autocomplete="new-password">
       </div>
       <div class="error-msg" id="reset-err"></div>
-      <button id="btn-set-pw" class="btn btn-gold btn-full" onclick="handleSetNewPassword()">Spara nytt lösenord</button>
+      <button id="btn-set-pw" class="btn btn-gold btn-full" onclick="handleSetNewPassword()" data-i18n="reset.submit">Spara nytt lösenord</button>
     </div>
   </div>
 
@@ -360,46 +354,79 @@
   <!-- ═══════════════════════════════════════════════════════ -->
   <div class="view" id="view-admin-login">
     <div class="form-wrap">
-      <button class="btn-back" onclick="showLanding('admin')">← Tillbaka</button>
-      <h1>Admin-inloggning</h1>
-      <p class="form-subtitle">Portal för HR, chefer och administratörer.</p>
+      <button class="btn-back" onclick="showLanding()" data-i18n="back.landing">← Tillbaka</button>
+      <h1 data-i18n="adminLogin.title">Admin-inloggning</h1>
+      <p class="form-subtitle" data-i18n="adminLogin.subtitle">Portal för HR, chefer och administratörer.</p>
 
       <div class="form-group">
-        <label for="admin-email">Jobbmail</label>
-        <input type="email" id="admin-email" placeholder="t.ex. din.email@jenseneducation.se" autocomplete="email">
+        <label for="admin-email" data-i18n="adminLogin.email">Jobbmail</label>
+        <input type="email" id="admin-email" data-i18n-placeholder="adminLogin.emailPh" placeholder="t.ex. rikard.ostrup@jenseneducation.se" autocomplete="email">
       </div>
       <div class="form-group">
-        <label for="admin-pw">Lösenord</label>
-        <input type="password" id="admin-pw" placeholder="Ditt lösenord" autocomplete="current-password">
+        <label for="admin-pw" data-i18n="adminLogin.pw">Lösenord</label>
+        <input type="password" id="admin-pw" data-i18n-placeholder="adminLogin.pwPh" placeholder="Ditt lösenord" autocomplete="current-password">
       </div>
 
       <div class="error-msg" id="admin-err"></div>
-      <button id="btn-admin-login" class="btn btn-gold btn-full" onclick="handleAdminLogin()">Logga in</button>
+      <button id="btn-admin-login" class="btn btn-gold btn-full" onclick="handleAdminLogin()" data-i18n="adminLogin.submit">Logga in</button>
 
-      <div class="admin-hint">
-        <strong>Kontakta Dennis.roslinde@jenseneducation.se om du saknar inloggningsuppgifter.</strong>
+      <div class="admin-hint" data-i18n="adminLogin.hint">
+        <strong>Kontakta Dennis om du saknar inloggningsuppgifter.</strong>
       </div>
     </div>
   </div>
 
 
   <!-- ═══════════════════════════════════════════════════════ -->
-  <!-- EMPLOYEE DASHBOARD                                     -->
+  <!-- ANONYM ÄRENDEVY (typ 1 – ingen inloggning)             -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="view" id="view-anon-case">
+    <div class="chat-wrap">
+      <div class="chat-head">
+        <button class="btn-back" onclick="show('view-anon-code-entry')" data-i18n="back.code">← Tillbaka</button>
+        <div class="chat-head-info">
+          <div><span data-i18n="anonCase.case">Ärende:</span> <span id="anon-token" class="token"></span></div>
+          <div style="font-size:13px;color:var(--muted);"><span data-i18n="anonCase.to">Till:</span> <strong id="anon-to"></strong></div>
+        </div>
+        <div class="chat-meta">
+          <span id="anon-cat" style="font-size:12px;background:var(--bg-alt);padding:3px 10px;border-radius:4px;color:var(--muted);"></span>
+          <span id="anon-status" class="status-pill"></span>
+        </div>
+      </div>
+
+      <div class="notice notice-amber" style="margin:0 0 12px;" data-i18n="anonCase.codeWarning">
+        🔑 Spara din åtkomstkod på en säker plats. Det är den enda vägen tillbaka till detta ärende.
+      </div>
+
+      <div class="msgs" id="anon-msgs"></div>
+
+      <div class="reply-area">
+        <div class="reply-col">
+          <textarea id="anon-reply-input" rows="2" data-i18n-placeholder="anonCase.replyPh" placeholder="Skriv ditt svar…"></textarea>
+          <div class="error-msg" id="anon-reply-err"></div>
+        </div>
+        <button id="btn-anon-reply" class="btn btn-gold" onclick="handleAnonReply()" data-i18n="anonCase.send">Skicka</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- EMPLOYEE DASHBOARD (typ 2 & 3)                         -->
   <!-- ═══════════════════════════════════════════════════════ -->
   <div class="view" id="view-emp-dash">
     <div class="dash-wrap">
       <div class="dash-head">
         <div>
-          <h1>Mina ärenden</h1>
-          <p>Ditt anonyma ID: <span id="emp-token" class="token"></span></p>
+          <h1 data-i18n="dash.title">Mina ärenden</h1>
         </div>
-        <button class="btn btn-gold" onclick="showNewCase()">+ Ny anmälan</button>
+        <button class="btn btn-gold" onclick="newCaseForExistingUser()" data-i18n="dash.newCase">+ Ny anmälan</button>
       </div>
 
       <div class="sub-tabs">
-        <button class="sub-tab active" data-stab="all"      onclick="showEmpDash('all')">Alla</button>
-        <button class="sub-tab"        data-stab="open"     onclick="showEmpDash('open')">Pågående</button>
-        <button class="sub-tab"        data-stab="resolved" onclick="showEmpDash('resolved')">Avslutade</button>
+        <button class="sub-tab active" data-stab="all"      onclick="showEmpDash('all')" data-i18n="dash.all">Alla</button>
+        <button class="sub-tab"        data-stab="open"     onclick="showEmpDash('open')" data-i18n="dash.open">Pågående</button>
+        <button class="sub-tab"        data-stab="resolved" onclick="showEmpDash('resolved')" data-i18n="dash.resolved">Avslutade</button>
       </div>
 
       <div id="emp-cases-list" class="cases-list"></div>
@@ -408,63 +435,138 @@
 
 
   <!-- ═══════════════════════════════════════════════════════ -->
-  <!-- NEW CASE                                               -->
+  <!-- NEW CASE / REPORT FORM (används av alla tre typer)     -->
   <!-- ═══════════════════════════════════════════════════════ -->
   <div class="view" id="view-new-case">
     <div class="form-wrap form-wrap-wide">
-      <button class="btn-back" onclick="showEmpDash()">← Tillbaka till mina ärenden</button>
-      <h1>Skicka ny anmälan</h1>
-      <p class="form-subtitle">
-        Ditt meddelande skickas anonymt. Mottagaren ser enbart ditt anonyma ärendenummer –
-        aldrig ditt namn eller din e-post.
+      <button class="btn-back" onclick="handleReportFormBack()" data-i18n="back.generic">← Tillbaka</button>
+      <h1 data-i18n="reportForm.title">Skicka anmälan</h1>
+      <p class="form-subtitle" id="reportform-subtitle" data-i18n="reportForm.subtitleAnon">
+        Din anmälan skickas anonymt. Mottagaren ser enbart ditt anonyma ärendenummer.
       </p>
-
-      <div class="notice notice-blue">
-        🔒 Din identitet är fullständigt skyddad. Inkludera inte ditt namn om det inte är nödvändigt.
-      </div>
 
       <form id="new-case-form" onsubmit="return false;">
         <div class="form-group">
-          <label>Välj mottagare</label>
+          <label data-i18n="reportForm.recipient">Välj mottagare</label>
           <div id="recipient-grid" class="recipient-grid"></div>
         </div>
 
-        <div class="form-group">
-          <label for="cat-sel">Kategori</label>
-          <select id="cat-sel">
-            <option value="">Välj kategori…</option>
-            <option value="harassment">Trakasserier / Mobbning</option>
-            <option value="discrimination">Diskriminering</option>
-            <option value="safety">Arbetsmiljö &amp; säkerhet</option>
-            <option value="fraud">Ekonomiska oegentligheter</option>
-            <option value="corruption">Korruption / Mutor</option>
-            <option value="compliance">Lagstiftning / Regelefterlevnad</option>
-            <option value="other">Övrigt</option>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="cat-sel" data-i18n="reportForm.category">Kategori</label>
+            <select id="cat-sel">
+              <option value="" data-i18n="cat.choose">Välj kategori…</option>
+              <option value="ekonomi" data-i18n="cat.ekonomi">Ekonomi, finans, pengar, penningtvätt</option>
+              <option value="mutor" data-i18n="cat.mutor">Mutor, korruption, intressekonflikt</option>
+              <option value="inkop" data-i18n="cat.inkop">Inköp</option>
+              <option value="transport" data-i18n="cat.transport">Transport, produkter, tillverkning</option>
+              <option value="halsa" data-i18n="cat.halsa">Människors liv/hälsa</option>
+              <option value="sexuella" data-i18n="cat.sexuella">Sexuella trakasserier</option>
+              <option value="personuppgifter" data-i18n="cat.personuppgifter">Hantering av personuppgifter</option>
+              <option value="miljo" data-i18n="cat.miljo">Miljöpåverkan</option>
+              <option value="hot" data-i18n="cat.hot">Hot, våld, stöld</option>
+              <option value="annat" data-i18n="cat.annat">Annat</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="dept-sel" data-i18n="reportForm.department">Verksamhet</label>
+            <select id="dept-sel" onchange="handleDeptChange()">
+              <option value="" data-i18n="dept.choose">Välj verksamhet…</option>
+              <option value="forskolan" data-i18n="dept.forskolan">Förskolan</option>
+              <option value="grundskolan" data-i18n="dept.grundskolan">Grundskolan</option>
+              <option value="gymnasiet" data-i18n="dept.gymnasiet">Gymnasiet</option>
+              <option value="komvux" data-i18n="dept.komvux">Komvux/SFI</option>
+              <option value="yh" data-i18n="dept.yh">Yrkeshögskolan</option>
+              <option value="staber" data-i18n="dept.staber">Staber</option>
+              <option value="annat" data-i18n="dept.annat">Annat</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" id="dept-detail-group" style="display:none;">
+          <label for="dept-detail-sel" id="dept-detail-label" data-i18n="reportForm.staberChoose">Vilken stab?</label>
+          <select id="dept-detail-sel">
+            <option value="hr" data-i18n="staber.hr">HR/Lön</option>
+            <option value="ekonomi" data-i18n="staber.ekonomi">Ekonomi</option>
+            <option value="kvalitet" data-i18n="staber.kvalitet">Kvalitet</option>
+            <option value="marknad" data-i18n="staber.marknad">Marknad</option>
+            <option value="fastighet" data-i18n="staber.fastighet">Fastighet</option>
+            <option value="it" data-i18n="staber.it">IT</option>
+            <option value="elevhalsan" data-i18n="staber.elevhalsan">Elevhälsan</option>
           </select>
+          <input type="text" id="dept-detail-text" style="display:none;margin-top:8px;" data-i18n-placeholder="reportForm.specify" placeholder="Ange vad">
         </div>
 
         <div class="form-group">
-          <label for="case-msg">Din anmälan</label>
-          <textarea id="case-msg" placeholder="Beskriv situationen i detalj. Inkludera datum, plats och eventuella vittnen om relevant. Undvik att nämna ditt eget namn om det inte är absolut nödvändigt."></textarea>
+          <label for="case-msg" data-i18n="reportForm.message">Din anmälan</label>
+          <textarea id="case-msg" data-i18n-placeholder="reportForm.messagePh" placeholder="Beskriv situationen i detalj."></textarea>
+        </div>
+
+        <p class="optional-fields-label" data-i18n="reportForm.optionalLabel">Följande fält är valfria men hjälper utredningen:</p>
+
+        <div class="form-group">
+          <label for="q-who" data-i18n="reportForm.qWho">Vem eller vilka rör ditt ärende?</label>
+          <textarea id="q-who" class="textarea-small"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="q-where" data-i18n="reportForm.qWhere">Var hände det?</label>
+          <textarea id="q-where" class="textarea-small"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="q-when" data-i18n="reportForm.qWhen">När hände det?</label>
+          <textarea id="q-when" class="textarea-small"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="q-what" data-i18n="reportForm.qWhat">Vad var det som hände?</label>
+          <textarea id="q-what" class="textarea-small"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="q-actions" data-i18n="reportForm.qActions">Har du vidtagit några andra åtgärder i ärendet?</label>
+          <textarea id="q-actions" class="textarea-small"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="nc-files" data-i18n="reportForm.attachments">Bifoga bevismaterial (max 50MB totalt)</label>
+          <input type="file" id="nc-files" multiple accept="image/*,.pdf,.doc,.docx">
+          <div id="nc-files-list" class="files-list"></div>
         </div>
 
         <div class="error-msg" id="nc-err"></div>
-        <button id="btn-create-case" class="btn btn-gold btn-full" onclick="handleCreateCase()">Skicka anmälan anonymt</button>
+        <button id="btn-create-case" class="btn btn-gold btn-full" onclick="handleCreateCase()" data-i18n="reportForm.submit">Skicka anmälan</button>
       </form>
     </div>
   </div>
 
 
   <!-- ═══════════════════════════════════════════════════════ -->
-  <!-- CASE DETAIL – Employee                                 -->
+  <!-- ANONYM KOD – BEKRÄFTELSE (visas EN gång efter insändning) -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="view" id="view-code-confirm">
+    <div class="form-wrap">
+      <div style="text-align:center;font-size:48px;margin-bottom:16px;">🔑</div>
+      <h1 data-i18n="codeConfirm.title">Spara din åtkomstkod!</h1>
+      <p class="form-subtitle" data-i18n="codeConfirm.subtitle">
+        Detta är den enda vägen tillbaka till ditt ärende. Vi har inte sparat din e-post, så koden kan inte återställas om du tappar bort den.
+      </p>
+      <div class="code-display" id="code-display-value"></div>
+      <button class="btn btn-outline-navy btn-full" onclick="copyAccessCode()" data-i18n="codeConfirm.copy" style="margin-bottom:12px;">Kopiera kod</button>
+      <p style="text-align:center;margin-bottom:16px;"><span data-i18n="codeConfirm.caseNr">Ärendenummer:</span> <strong id="code-confirm-token" class="token"></strong></p>
+      <button class="btn btn-gold btn-full" onclick="handleCodeConfirmDone()" data-i18n="codeConfirm.done">Jag har sparat koden →</button>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- CASE DETAIL – Employee (typ 2 & 3)                     -->
   <!-- ═══════════════════════════════════════════════════════ -->
   <div class="view" id="view-case-emp">
     <div class="chat-wrap">
       <div class="chat-head">
-        <button class="btn-back" onclick="showEmpDash()">← Tillbaka</button>
+        <button class="btn-back" onclick="showEmpDash()" data-i18n="back.dash">← Tillbaka</button>
         <div class="chat-head-info">
-          <div>Ärende: <span id="c-token" class="token"></span></div>
-          <div style="font-size:13px;color:var(--muted);">Till: <strong id="c-to"></strong></div>
+          <div><span data-i18n="anonCase.case">Ärende:</span> <span id="c-token" class="token"></span></div>
+          <div style="font-size:13px;color:var(--muted);"><span data-i18n="anonCase.to">Till:</span> <strong id="c-to"></strong></div>
         </div>
         <div class="chat-meta">
           <span id="c-cat" style="font-size:12px;background:var(--bg-alt);padding:3px 10px;border-radius:4px;color:var(--muted);"></span>
@@ -476,10 +578,10 @@
 
       <div class="reply-area">
         <div class="reply-col">
-          <textarea id="emp-reply-input" rows="2" placeholder="Skriv ditt svar… (Ctrl+Enter för att skicka)"></textarea>
+          <textarea id="emp-reply-input" rows="2" data-i18n-placeholder="anonCase.replyPh" placeholder="Skriv ditt svar…"></textarea>
           <div class="error-msg" id="emp-reply-err"></div>
         </div>
-        <button id="btn-emp-reply" class="btn btn-gold" onclick="handleEmpReply()">Skicka</button>
+        <button id="btn-emp-reply" class="btn btn-gold" onclick="handleEmpReply()" data-i18n="anonCase.send">Skicka</button>
       </div>
     </div>
   </div>
@@ -492,14 +594,14 @@
     <div class="dash-wrap">
       <div class="dash-head">
         <div>
-          <h1>Inkomna ärenden</h1>
+          <h1 data-i18n="adminDash.title">Inkomna ärenden</h1>
           <p id="admin-name" style="font-weight:700;"></p>
           <p id="admin-title" style="color:var(--muted);font-size:13px;"></p>
         </div>
       </div>
 
-      <div class="notice notice-green">
-        🔒 Alla anmälare är helt anonyma. Du kan enbart se deras ärendenummer – aldrig deras identitet.
+      <div class="notice notice-green" data-i18n="adminDash.notice">
+        🔒 Anonyma anmälare visas enbart med ärendenummer. Öppna anmälare visas med namn och kontaktuppgifter.
       </div>
 
       <div id="admin-cases-list" class="cases-list"></div>
@@ -513,33 +615,36 @@
   <div class="view" id="view-case-admin">
     <div class="chat-wrap">
       <div class="chat-head">
-        <button class="btn-back" onclick="showAdminDash()">← Tillbaka</button>
+        <button class="btn-back" onclick="showAdminDash()" data-i18n="back.dash">← Tillbaka</button>
         <div class="chat-head-info">
-          <div>Ärende: <span id="ac-token" class="token"></span></div>
-          <div style="font-size:13px;color:var(--muted);">Kategori: <span id="ac-cat"></span></div>
+          <div><span data-i18n="anonCase.case">Ärende:</span> <span id="ac-token" class="token"></span></div>
+          <div style="font-size:13px;color:var(--muted);" id="ac-reporter-info"></div>
+          <div style="font-size:13px;color:var(--muted);"><span data-i18n="adminCase.category">Kategori:</span> <span id="ac-cat"></span> · <span id="ac-dept"></span></div>
         </div>
         <div class="status-sel-row">
-          Status:
+          <span data-i18n="adminCase.status">Status:</span>
           <select id="ac-status-sel" onchange="handleStatusChange()">
-            <option value="open">Öppen</option>
-            <option value="investigating">Under utredning</option>
-            <option value="resolved">Avslutad</option>
+            <option value="open" data-i18n="status.open">Öppen</option>
+            <option value="investigating" data-i18n="status.investigating">Under utredning</option>
+            <option value="resolved" data-i18n="status.resolved">Avslutad</option>
           </select>
         </div>
       </div>
 
-      <div class="notice notice-amber" style="margin:0 0 12px;">
+      <div class="notice notice-amber" style="margin:0 0 12px;" id="ac-anon-notice" data-i18n="adminCase.anonNotice">
         🔒 Denna anmälare är anonym. Deras verkliga identitet är inte tillgänglig för dig och kan inte spåras.
       </div>
+
+      <div id="ac-attachments" class="attachments-list"></div>
 
       <div class="msgs" id="admin-msgs"></div>
 
       <div class="reply-area">
         <div class="reply-col">
-          <textarea id="admin-reply-input" rows="2" placeholder="Skriv ditt svar… (Ctrl+Enter för att skicka)"></textarea>
+          <textarea id="admin-reply-input" rows="2" data-i18n-placeholder="anonCase.replyPh" placeholder="Skriv ditt svar…"></textarea>
           <div class="error-msg" id="admin-reply-err"></div>
         </div>
-        <button id="btn-admin-reply" class="btn btn-gold" onclick="handleAdminReply()">Skicka svar</button>
+        <button id="btn-admin-reply" class="btn btn-gold" onclick="handleAdminReply()" data-i18n="anonCase.send">Skicka svar</button>
       </div>
     </div>
   </div>
@@ -547,6 +652,7 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="i18n.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

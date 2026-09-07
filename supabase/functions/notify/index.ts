@@ -35,16 +35,11 @@ function loginButton(): string {
 serve(async (req) => {
   if (req.method !== 'POST') return new Response('Not allowed', { status: 405 })
 
-  // Verify caller is authenticated
-  const authHeader = req.headers.get('Authorization') ?? ''
-  const sb = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_ANON_KEY')!,
-    { global: { headers: { Authorization: authHeader } } }
-  )
-  const { data: { user } } = await sb.auth.getUser()
-  if (!user) return new Response('Unauthorized', { status: 401 })
-
+  // No auth requirement here on purpose: fully anonymous reporters (tier 1)
+  // have no session at all, yet still need admins notified. Safety instead
+  // comes from case_id being an unguessable UUID and this function only ever
+  // emailing the case's own pre-assigned admin/employee via the service role
+  // — the caller's identity is never trusted for anything sensitive.
   const sbAdmin = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
