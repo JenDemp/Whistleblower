@@ -57,16 +57,8 @@
         <p data-i18n="landing.whatP3">Missförhållandet behöver inte vara aktuellt eller pågående, det kan även gälla rapportering av avslutade missförhållanden.</p>
         <p data-i18n="landing.whatP4">Syftet med tjänsten är inte att fånga upp missnöje med arbetsförhållanden, organisation eller chefskap eller konflikter på arbetsplatsen. Rapportering av missförhållanden som uteslutande påverkar visselblåsaren eller dennes arbetssituation bedöms som regel inte vara ett visselblåsarärende.</p>
 
-        <h2 data-i18n="landing.reportTitle">Din rapport</h2>
-        <p data-i18n="landing.reportP1">Din rapport ska innehålla följande information:</p>
-        <ul class="landing-list">
-          <li data-i18n="landing.reportLi1">Vilken typ av oegentlighet du vill rapportera.</li>
-          <li data-i18n="landing.reportLi2">Var det skedde.</li>
-          <li data-i18n="landing.reportLi3">När det hände. Ange datum och klockslag och om det är något som har hänt upprepade gånger.</li>
-          <li data-i18n="landing.reportLi4">Eventuell dokumentation som du har tillgång till.</li>
-          <li data-i18n="landing.reportLi5">Information om andra åtgärder som du eventuellt har vidtagit i samband med det som har hänt.</li>
-        </ul>
-        <p class="landing-note" data-i18n="landing.reportNote">Obs! Du ska inte skicka in några personuppgifter som saknar avgörande betydelse för rapporten. Om du ändå skickar in sådana uppgifter kan vi komma att radera dem utan att informera dig.</p>
+
+      
 
         <h2 data-i18n="landing.anonTitle">Anonym eller konfidentiell rapportering</h2>
         <p data-i18n="landing.anonP1">Du har möjlighet att välja mellan anonym rapportering eller att ange ditt namn och dina kontaktuppgifter när du skickar in en rapport. Läs mer om de tre alternativen när du klickar på "Skapa ny rapport".</p>
@@ -123,58 +115,59 @@
 
     <!-- Panel: Dina rättigheter -->
     <div class="tab-panel" id="panel-skydd">
-      <div class="landing-panel skydd-panel">
-        <h1><em data-i18n="law.titleEm">Dina</em> <span data-i18n="law.titleRest">rättigheter</span></h1>
-        <p class="lead" data-i18n="law.lead">Lag (2021:890) om skydd för personer som rapporterar om missförhållanden — en sammanfattning av vad lagen innebär för dig som anställd på JENSEN.</p>
+        <div class="landing-panel skydd-panel">
+            <button class="btn-back" onclick="showLanding()" data-i18n="back.landing">← Tillbaka</button>
+            <h1><em data-i18n="law.titleEm">Dina</em> <span data-i18n="law.titleRest">rättigheter</span></h1>
+            <p class="lead" data-i18n="law.lead">Lag (2021:890) om skydd för personer som rapporterar om missförhållanden — en sammanfattning av vad lagen innebär för dig som anställd på JENSEN.</p>
 
-        <div class="law-grid">
-          <div class="law-card">
-            <div class="law-icon">🛡️</div>
-            <h3 data-i18n="law.c1title">Vem skyddas?</h3>
-            <p data-i18n="law.c1text">Du skyddas om du är anställd, praktikant, volontär, konsult eller f.d. anställd hos JENSEN. Skyddet gäller även den som sökt ett jobb och rapporterar om missförhållanden de fått kännedom om under rekryteringsprocessen.</p>
-          </div>
-          <div class="law-card">
-            <div class="law-icon">📋</div>
-            <h3 data-i18n="law.c2title">Vad kan rapporteras?</h3>
-            <p data-i18n="law.c2text">Missförhållanden av allmänintresse – till exempel brott mot lagar och regler, korruption, säkerhetsrisker, diskriminering, trakasserier eller andra allvarliga oegentligheter inom organisationen.</p>
-          </div>
-          <div class="law-card">
-            <div class="law-icon">🚫</div>
-            <h3 data-i18n="law.c3title">Förbjudna repressalier</h3>
-            <p data-i18n="law.c3text">Arbetsgivaren får inte vidta åtgärder som bestraffar dig för att du rapporterat: uppsägning, degradering, lönesänkning, förändrade arbetsuppgifter, trakasserier, negativt omdöme eller utfrysning.</p>
-          </div>
-          <div class="law-card">
-            <div class="law-icon">⚖️</div>
-            <h3 data-i18n="law.c4title">Omvänd bevisbörda</h3>
-            <p data-i18n="law.c4text">Om du påstår att du utsatts för repressalier, är det arbetsgivaren som måste bevisa att åtgärden inte hade något samband med din rapportering — inte du.</p>
-          </div>
-          <div class="law-card">
-            <div class="law-icon">🔒</div>
-            <h3 data-i18n="law.c5title">Anonymitet och sekretess</h3>
-            <p data-i18n="law.c5text">Din identitet ska skyddas i rapporteringsprocessen. Personal som hanterar ärenden är bunden av tystnadsplikt och får inte röja vem som lämnat rapporten.</p>
-          </div>
-          <div class="law-card">
-            <div class="law-icon">⏱️</div>
-            <h3 data-i18n="law.c6title">Tidsfrister för svar</h3>
-            <p data-i18n="law.c6text">Organisationen ska bekräfta att din rapport mottagits inom 7 dagar, och ge dig återkoppling om ärendets handläggning och utfall inom 3 månader.</p>
-          </div>
-          <div class="law-card">
-            <div class="law-icon">📣</div>
-            <h3 data-i18n="law.c7title">Tre rapporteringsvägar</h3>
-            <p data-i18n="law.c7text">Internt via denna tjänst, externt till en behörig tillsynsmyndighet, eller — som sista utväg — genom offentliggörande.</p>
-          </div>
-          <div class="law-card">
-            <div class="law-icon">💰</div>
-            <h3 data-i18n="law.c8title">Skadestånd</h3>
-            <p data-i18n="law.c8text">Om du utsätts för repressalier i strid med lagen har du rätt till skadestånd, både för ekonomisk förlust och för kränkning.</p>
-          </div>
-        </div>
+            <div class="law-grid">
+                <div class="law-card">
+                    <div class="law-icon">🛡️</div>
+                    <h3 data-i18n="law.c1title">Vem skyddas?</h3>
+                    <p data-i18n="law.c1text">Du skyddas om du är anställd, praktikant, volontär, konsult eller f.d. anställd hos JENSEN. Skyddet gäller även den som sökt ett jobb och rapporterar om missförhållanden de fått kännedom om under rekryteringsprocessen.</p>
+                </div>
+                <div class="law-card">
+                    <div class="law-icon">📋</div>
+                    <h3 data-i18n="law.c2title">Vad kan rapporteras?</h3>
+                    <p data-i18n="law.c2text">Missförhållanden av allmänintresse – till exempel brott mot lagar och regler, korruption, säkerhetsrisker, diskriminering, trakasserier eller andra allvarliga oegentligheter inom organisationen.</p>
+                </div>
+                <div class="law-card">
+                    <div class="law-icon">🚫</div>
+                    <h3 data-i18n="law.c3title">Förbjudna repressalier</h3>
+                    <p data-i18n="law.c3text">Arbetsgivaren får inte vidta åtgärder som bestraffar dig för att du rapporterat: uppsägning, degradering, lönesänkning, förändrade arbetsuppgifter, trakasserier, negativt omdöme eller utfrysning.</p>
+                </div>
+                <div class="law-card">
+                    <div class="law-icon">⚖️</div>
+                    <h3 data-i18n="law.c4title">Omvänd bevisbörda</h3>
+                    <p data-i18n="law.c4text">Om du påstår att du utsatts för repressalier, är det arbetsgivaren som måste bevisa att åtgärden inte hade något samband med din rapportering — inte du.</p>
+                </div>
+                <div class="law-card">
+                    <div class="law-icon">🔒</div>
+                    <h3 data-i18n="law.c5title">Anonymitet och sekretess</h3>
+                    <p data-i18n="law.c5text">Din identitet ska skyddas i rapporteringsprocessen. Personal som hanterar ärenden är bunden av tystnadsplikt och får inte röja vem som lämnat rapporten.</p>
+                </div>
+                <div class="law-card">
+                    <div class="law-icon">⏱️</div>
+                    <h3 data-i18n="law.c6title">Tidsfrister för svar</h3>
+                    <p data-i18n="law.c6text">Organisationen ska bekräfta att din rapport mottagits inom 7 dagar, och ge dig återkoppling om ärendets handläggning och utfall inom 3 månader.</p>
+                </div>
+                <div class="law-card">
+                    <div class="law-icon">📣</div>
+                    <h3 data-i18n="law.c7title">Tre rapporteringsvägar</h3>
+                    <p data-i18n="law.c7text">Internt via denna tjänst, externt till en behörig tillsynsmyndighet, eller — som sista utväg — genom offentliggörande.</p>
+                </div>
+                <div class="law-card">
+                    <div class="law-icon">💰</div>
+                    <h3 data-i18n="law.c8title">Skadestånd</h3>
+                    <p data-i18n="law.c8text">Om du utsätts för repressalier i strid med lagen har du rätt till skadestånd, både för ekonomisk förlust och för kränkning.</p>
+                </div>
+            </div>
 
-        <div class="law-footer">
-          <span data-i18n="law.fullText">Fullständig lagtext:</span>
-          <a href="https://www.riksdagen.se/sv/dokument-och-lagar/dokument/svensk-forfattningssamling/lag-2021890-om-skydd-for-personer-som_sfs-2021-890/" target="_blank" rel="noopener">SFS 2021:890 på riksdagen.se</a>
+            <div class="law-footer">
+                <span data-i18n="law.fullText">Fullständig lagtext:</span>
+                <a href="https://www.riksdagen.se/sv/dokument-och-lagar/dokument/svensk-forfattningssamling/lag-2021890-om-skydd-for-personer-som_sfs-2021-890/" target="_blank" rel="noopener">SFS 2021:890 på riksdagen.se</a>
+            </div>
         </div>
-      </div>
     </div>
   </div><!-- /view-landing -->
 
