@@ -321,13 +321,14 @@ a:hover { text-decoration: underline; }
 /* ── CASE LIST ───────────────────────────── */
 .cases-list { display: flex; flex-direction: column; gap: 10px; }
 .empty-state { text-align: center; color: var(--muted); padding: 56px 24px; font-size: 15px; background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); }
-.case-card { background: var(--card); border-radius: var(--radius); padding: 18px 22px; border: 1.5px solid var(--border); cursor: pointer; transition: all .15s; position: relative; }
+.case-card { background: var(--card); border-radius: var(--radius); padding: 18px 22px 26px; border: 1.5px solid var(--border); cursor: pointer; transition: all .15s; position: relative; }
 .case-card:hover { border-color: var(--gold-dark); box-shadow: var(--shadow); }
 .case-card.unread { border-left: 4px solid var(--gold-dark); }
 .case-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .case-meta { display: flex; gap: 16px; font-size: 12px; color: var(--muted); margin-bottom: 8px; flex-wrap: wrap; }
 .case-subject-line { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.new-badge { position: absolute; top: 16px; right: 56px; background: var(--gold-dark); color: #fff; font-size: 10px; font-weight: 800; letter-spacing: .5px; padding: 2px 9px; border-radius: 99px; text-transform: uppercase; }
+.waiting-note { font-size: 12px; color: var(--muted); font-style: italic; }
+.new-badge { position: absolute; bottom: 12px; right: 16px; background: var(--gold-dark); color: #fff; font-size: 10px; font-weight: 800; letter-spacing: .5px; padding: 3px 10px; border-radius: 99px; text-transform: uppercase; }
 .type-tag { font-size: 10px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; padding: 2px 8px; border-radius: 99px; background: var(--bg-alt); color: var(--muted); border: 1px solid var(--border); }
 
 /* ── TOKENS & STATUS ─────────────────────── */

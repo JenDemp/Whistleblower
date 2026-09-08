@@ -598,6 +598,13 @@
         🔒 Anonyma anmälare visas enbart med ärendenummer. Öppna anmälare visas med namn och kontaktuppgifter.
       </div>
 
+      <div class="sub-tabs">
+        <button class="sub-tab active" data-stab="all" onclick="showAdminDash('all')" data-i18n="dash.all">Alla</button>
+        <button class="sub-tab" data-stab="open" onclick="showAdminDash('open')" data-i18n="status.open">Öppen</button>
+        <button class="sub-tab" data-stab="investigating" onclick="showAdminDash('investigating')" data-i18n="status.investigating">Under utredning</button>
+        <button class="sub-tab" data-stab="resolved" onclick="showAdminDash('resolved')" data-i18n="status.resolved">Avslutad</button>
+      </div>
+
       <div id="admin-cases-list" class="cases-list"></div>
     </div>
   </div>

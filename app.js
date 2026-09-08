@@ -514,6 +514,9 @@ async function showEmpDash(filter) {
     const msgs    = (c.messages || []).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
     const lastMsg = msgs.at(-1);
     const unread  = lastMsg && lastMsg.from_role === 'admin';
+    // Speglar admin-vyn: om senaste meddelandet är från mig själv väntar
+    // jag på handläggaren, annars ligger nytt svar och väntar på mig.
+    const waitingNote = (c.status === 'investigating' && !unread) ? t('common.waitingForHandler') : '';
 
     const div = el('div', `case-card${unread ? ' unread' : ''}`);
     div.innerHTML = `
@@ -526,6 +529,7 @@ async function showEmpDash(filter) {
         <span>${t('cat.' + c.category)}</span>
         <span>${fmt(c.created_at)}</span>
       </div>
+      ${waitingNote ? `<div class="waiting-note">${waitingNote}</div>` : ''}
       ${unread ? `<div class="new-badge">${t('common.newReply')}</div>` : ''}`;
     div.addEventListener('click', () => openCaseEmp(c.id));
     list.appendChild(div);
@@ -574,7 +578,13 @@ async function handleEmpReply() {
 }
 
 // ── ADMIN DASHBOARD ───────────────────────────────────────────
-async function showAdminDash() {
+let activeAdminDashTab = 'all';
+
+async function showAdminDash(filter) {
+  activeAdminDashTab = filter || activeAdminDashTab || 'all';
+  document.querySelectorAll('#view-admin-dash .sub-tab').forEach(b => {
+    b.classList.toggle('active', b.dataset.stab === activeAdminDashTab);
+  });
   document.getElementById('admin-name').textContent  = me.name  || me.email || '';
   document.getElementById('admin-title').textContent = me.title || '';
   show('view-admin-dash');
@@ -584,9 +594,12 @@ async function showAdminDash() {
 
   // employee_id är avsiktligt exkluderat — anonymitet upprätthålls på query-nivå.
   // Ingen mottagarfiltrering: delad inkorg, RLS avgör vilka rader admins ser.
-  const { data: cases, error } = await sb.from('cases')
+  let q = sb.from('cases')
     .select('id, anonymous_token, reporter_type, reporter_name, subject, category, department, status, created_at, messages(*)')
     .order('created_at', { ascending: false });
+  if (activeAdminDashTab !== 'all') q = q.eq('status', activeAdminDashTab);
+
+  const { data: cases, error } = await q;
 
   if (error) { list.innerHTML = `<div class="empty-state">Fel: ${error.message}</div>`; return; }
 
@@ -603,6 +616,10 @@ async function showAdminDash() {
     const typeLabel = c.reporter_type === 'open'
       ? (c.reporter_name || t('reportType.t3title'))
       : c.reporter_type === 'anonymous_email' ? t('reportType.t2title') : t('reportType.t1title');
+    // Pillen är alltid kort. Om ärendet är under utredning och admin redan
+    // svarat (väntar på anmälaren) visas det som en separat liten textrad
+    // istället för att proppa in en lång mening i den runda pillen.
+    const waitingNote = (c.status === 'investigating' && !unread) ? t('common.waitingForReporter') : '';
 
     const div = el('div', `case-card${unread ? ' unread' : ''}`);
     div.innerHTML = `
@@ -617,6 +634,7 @@ async function showAdminDash() {
         <span>${fmt(c.created_at)}</span>
         <span>${msgs.length} ${t('common.messages')}</span>
       </div>
+      ${waitingNote ? `<div class="waiting-note">${waitingNote}</div>` : ''}
       ${unread ? `<div class="new-badge">${t('common.newMessage')}</div>` : ''}`;
     div.addEventListener('click', () => openCaseAdmin(c.id));
     list.appendChild(div);
