@@ -195,7 +195,7 @@ a:hover { text-decoration: underline; }
   transform: translateY(-2px);
   text-decoration: none;
 }
-.direct-contact-icon { font-size: 40px; }
+.direct-contact-icon { font-size: 40px; color: var(--navy); }
 .direct-contact-text { color: var(--navy); font-weight: 600; font-size: 14.5px; line-height: 1.5; }
 
 /* ── TAB PANELS (Kontakter / Dina rättigheter) ─ */
