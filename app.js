@@ -372,14 +372,27 @@ function renderFilesList() {
 }
 
 async function uploadPendingFiles(caseId) {
+  const failures = [];
   for (const file of pendingFiles) {
     const path = `${caseId}/${Date.now()}_${file.name}`;
     const { error: upErr } = await sb.storage.from('case-attachments').upload(path, file);
-    if (!upErr) {
-      await sb.from('attachments').insert({ case_id: caseId, file_path: path, file_name: file.name, file_size: file.size });
+    if (upErr) {
+      console.error('Bilageuppladdning misslyckades:', file.name, upErr);
+      failures.push(file.name);
+      continue;
+    }
+    const { error: metaErr } = await sb.from('attachments').insert({ case_id: caseId, file_path: path, file_name: file.name, file_size: file.size });
+    if (metaErr) {
+      console.error('Kunde inte spara bilage-metadata:', file.name, metaErr);
+      failures.push(file.name);
     }
   }
   pendingFiles = [];
+  if (failures.length) {
+    // Anmälan är redan skickad vid det här laget — felet gäller bara bilagorna,
+    // så vi varnar utan att avbryta flödet.
+    alert(t('err.attachmentsFailed') + '\n' + failures.join(', '));
+  }
 }
 
 document.addEventListener('change', (e) => {
@@ -401,7 +414,7 @@ async function handleCreateCase() {
   if (dept === 'annat')  deptDetail = val('dept-detail-text');
 
   const who = val('q-who'), where = val('q-where'), when = val('q-when'),
-        what = val('q-what'), actions = val('q-actions');
+        actions = val('q-actions');
 
   setBusy('btn-create-case', true);
 
@@ -409,7 +422,7 @@ async function handleCreateCase() {
     const { data, error } = await sb.rpc('create_anonymous_case', {
       p_category: category, p_department: dept, p_department_detail: deptDetail,
       p_who_involved: who || null, p_where_happened: where || null,
-      p_when_happened: when || null, p_what_happened: what || null,
+      p_when_happened: when || null, p_what_happened: null,
       p_other_actions: actions || null, p_message: message
     });
     setBusy('btn-create-case', false);
@@ -428,7 +441,7 @@ async function handleCreateCase() {
     employee_id: me.id,
     category, department: dept, department_detail: deptDetail,
     who_involved: who || null, where_happened: where || null,
-    when_happened: when || null, what_happened: what || null, other_actions: actions || null,
+    when_happened: when || null, other_actions: actions || null,
     status: 'open'
   };
   if (reportType === 'open') {
@@ -608,7 +621,7 @@ async function openCaseAdmin(caseId) {
 
   const [{ data: c }, { data: msgs }, { data: attachments }] = await Promise.all([
     // employee_id är aldrig med i select — anonymitet upprätthålls på query-nivå
-    sb.from('cases').select('id, anonymous_token, reporter_type, reporter_name, reporter_phone, category, department, department_detail, status').eq('id', caseId).single(),
+    sb.from('cases').select('id, anonymous_token, reporter_type, reporter_name, reporter_phone, category, department, department_detail, status, who_involved, where_happened, when_happened, other_actions').eq('id', caseId).single(),
     sb.from('messages').select('*').eq('case_id', caseId).order('created_at', { ascending: true }),
     sb.from('attachments').select('*').eq('case_id', caseId)
   ]);
@@ -630,6 +643,14 @@ async function openCaseAdmin(caseId) {
     reporterInfoEl.textContent = c.reporter_type === 'anonymous_email' ? t('reportType.t2title') : t('reportType.t1title');
     anonNoticeEl.style.display = 'flex';
   }
+
+  const detailsWrap = document.getElementById('ac-details');
+  const detailFields = [
+    ['reportForm.qWho', c.who_involved], ['reportForm.qWhere', c.where_happened],
+    ['reportForm.qWhen', c.when_happened], ['reportForm.qActions', c.other_actions]
+  ].filter(([, v]) => v);
+  detailsWrap.innerHTML = detailFields.map(([labelKey, v]) =>
+    `<div class="case-detail-item"><dt>${t(labelKey)}</dt><dd>${esc(v)}</dd></div>`).join('');
 
   const attWrap = document.getElementById('ac-attachments');
   attWrap.innerHTML = '';

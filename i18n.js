@@ -247,6 +247,7 @@ const translations = {
     'err.badCredentials': 'Felaktig e-postadress eller lösenord.',
     'err.enterEmailFirst': 'Ange din e-postadress ovan och klicka sedan på "Glömt lösenord?".',
     'err.enterPw': 'Ange ett lösenord.',
+    'err.attachmentsFailed': 'Anmälan skickades, men följande bilagor kunde inte laddas upp:',
   },
 
   en: {
@@ -495,6 +496,7 @@ const translations = {
     'err.badCredentials': 'Incorrect email or password.',
     'err.enterEmailFirst': 'Enter your email address above, then click "Forgot password?".',
     'err.enterPw': 'Enter a password.',
+    'err.attachmentsFailed': 'Your report was submitted, but the following attachments could not be uploaded:',
   }
 };
 

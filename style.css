@@ -361,6 +361,16 @@ a:hover { text-decoration: underline; }
 .reply-area textarea:focus { outline: none; border-color: var(--gold-dark); box-shadow: 0 0 0 3px rgba(201,163,95,.15); }
 .reply-col { flex: 1; display: flex; flex-direction: column; gap: 6px; }
 
+/* ── CASE DETAILS (admin: reporterns valfria fält) ─ */
+.case-details {
+  background: var(--bg-alt); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px 18px; margin-bottom: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px 24px;
+}
+.case-details:empty { display: none; }
+.case-detail-item dt { font-size: 11px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+.case-detail-item dd { font-size: 13.5px; color: var(--text); }
+
 /* ── ATTACHMENTS (admin case view) ───────── */
 .attachments-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
 .attachment-chip {
