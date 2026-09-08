@@ -212,18 +212,18 @@ async function handleCodeEntry() {
   if (error || !data || !data.length) return err('code-entry-err', t('err.invalidCode'));
   anonCaseCode = code;
   anonCaseData = data[0];
-  renderAnonCase();
+  await renderAnonCase();
   show('view-anon-case');
 }
 
-function renderAnonCase() {
+async function renderAnonCase() {
   const c = anonCaseData;
   document.getElementById('anon-token').textContent = c.wb_token;
   document.getElementById('anon-cat').textContent = t('cat.' + c.category);
   const sp = document.getElementById('anon-status');
   sp.textContent = t('status.' + c.status);
   sp.className = `status-pill s-${c.status}`;
-  renderMsgs('anon-msgs', c.messages || [], 'employee', {
+  await renderMsgs('anon-msgs', c.messages || [], 'employee', {
     subject: c.subject, category: c.category, department: c.department, departmentDetail: c.department_detail,
     whoInvolved: c.who_involved, whereHappened: c.where_happened,
     whenHappened: c.when_happened, otherActions: c.other_actions
@@ -244,7 +244,7 @@ async function handleAnonReply() {
   document.getElementById('anon-reply-input').value = '';
   clearErrors();
   const { data } = await sb.rpc('get_case_by_code', { p_code: anonCaseCode });
-  if (data && data[0]) { anonCaseData = data[0]; renderAnonCase(); }
+  if (data && data[0]) { anonCaseData = data[0]; await renderAnonCase(); }
 }
 
 // ── LOGIN (typ 2 & 3) ────────────────────────────────────────────
@@ -554,9 +554,10 @@ async function openCaseEmp(caseId) {
   activeCaseExtra = {
     subject: c.subject, category: c.category, department: c.department, departmentDetail: c.department_detail,
     whoInvolved: c.who_involved, whereHappened: c.where_happened,
-    whenHappened: c.when_happened, otherActions: c.other_actions
+    whenHappened: c.when_happened, otherActions: c.other_actions,
+    reporterType: c.reporter_type, reporterName: c.reporter_name
   };
-  renderMsgs('emp-msgs', msgs || [], 'employee', activeCaseExtra);
+  await renderMsgs('emp-msgs', msgs || [], 'employee', activeCaseExtra);
   document.getElementById('emp-reply-input').value = '';
 }
 
@@ -574,7 +575,7 @@ async function handleEmpReply() {
   clearErrors();
   const { data: msgs } = await sb.from('messages').select('*')
     .eq('case_id', activeCaseId).order('created_at', { ascending: true });
-  renderMsgs('emp-msgs', msgs || [], 'employee', activeCaseExtra);
+  await renderMsgs('emp-msgs', msgs || [], 'employee', activeCaseExtra);
 }
 
 // ── ADMIN DASHBOARD ───────────────────────────────────────────
@@ -686,9 +687,10 @@ async function openCaseAdmin(caseId) {
   activeCaseExtra = {
     subject: c.subject, category: c.category, department: c.department, departmentDetail: c.department_detail,
     whoInvolved: c.who_involved, whereHappened: c.where_happened,
-    whenHappened: c.when_happened, otherActions: c.other_actions
+    whenHappened: c.when_happened, otherActions: c.other_actions,
+    reporterType: c.reporter_type, reporterName: c.reporter_name
   };
-  renderMsgs('admin-msgs', msgs || [], 'admin', activeCaseExtra);
+  await renderMsgs('admin-msgs', msgs || [], 'admin', activeCaseExtra);
   document.getElementById('admin-reply-input').value = '';
 }
 
@@ -696,7 +698,7 @@ async function handleAdminReply() {
   const text = val('admin-reply-input');
   if (!text) return err('admin-reply-err', t('err.writeMessage'));
   setBusy('btn-admin-reply', true);
-  const { error } = await sb.from('messages').insert({ case_id: activeCaseId, from_role: 'admin', text });
+  const { error } = await sb.from('messages').insert({ case_id: activeCaseId, from_role: 'admin', text, sender_id: me.id });
   setBusy('btn-admin-reply', false);
   if (error) return err('admin-reply-err', error.message);
 
@@ -710,7 +712,7 @@ async function handleAdminReply() {
   clearErrors();
   const { data: msgs } = await sb.from('messages').select('*')
     .eq('case_id', activeCaseId).order('created_at', { ascending: true });
-  renderMsgs('admin-msgs', msgs || [], 'admin', activeCaseExtra);
+  await renderMsgs('admin-msgs', msgs || [], 'admin', activeCaseExtra);
 }
 
 async function handleStatusChange() {
@@ -723,12 +725,21 @@ async function handleStatusChange() {
 // whoInvolved, whereHappened, whenHappened, otherActions } — allt som
 // fylldes i utöver själva meddelandet, för att "Min anmälan"-modalen
 // ska kunna visa hela anmälan i sin ursprungliga blockstruktur.
-function renderMsgs(id, messages, perspective, caseExtra) {
+let adminsMapCache = null;
+async function getAdminsMap() {
+  if (adminsMapCache) return adminsMapCache;
+  const { data } = await sb.from('admins').select('id, name');
+  adminsMapCache = Object.fromEntries((data || []).map(a => [a.id, a.name]));
+  return adminsMapCache;
+}
+
+async function renderMsgs(id, messages, perspective, caseExtra) {
   const c = document.getElementById(id);
   if (!messages.length) {
     c.innerHTML = `<div style="text-align:center;color:var(--muted);padding:32px;font-size:14px;">${t('common.noMessages')}</div>`;
     return;
   }
+  const adminsMap = await getAdminsMap();
   c.innerHTML = '';
   messages.forEach((m, idx) => {
     const own = m.from_role === perspective;
@@ -736,7 +747,9 @@ function renderMsgs(id, messages, perspective, caseExtra) {
     const wrap = el('div', `msg ${own ? 'msg-own' : 'msg-other'}`);
     const senderLabel = isFirst
       ? (perspective === 'employee' ? t('common.myReport') : t('common.theReport'))
-      : (m.from_role === 'employee' ? t('common.reporter') : t('common.caseHandler'));
+      : (m.from_role === 'employee'
+          ? ((caseExtra && caseExtra.reporterType === 'open' && caseExtra.reporterName) ? caseExtra.reporterName : t('common.reporter'))
+          : (adminsMap[m.sender_id] || t('common.caseHandler')));
 
     wrap.innerHTML = `
       <div class="bubble${isFirst ? ' bubble-report' : ''}">

@@ -681,3 +681,74 @@ end;
 $$;
 
 grant execute on function public.get_case_by_code to anon, authenticated;
+
+
+-- ================================================================
+-- STEG 6 (TILLÄGG – kör detta block, EJ destruktivt):
+-- Visa vilken admin som svarat i chatten (delad inkorg = flera olika
+-- admins kan svara på samma ärende över tid), samt namnet på öppna
+-- anmälare istället för den generiska "Anonym anmälare"-etiketten.
+-- Det senare kräver ingen schemaändring — reporter_name finns redan
+-- på cases och hanteras i klienten.
+-- ================================================================
+
+-- 25. Spåra vilken admin som skickade varje admin-meddelande
+alter table public.messages add column if not exists sender_id uuid references auth.users(id);
+
+-- 26. get_case_by_code: inkludera sender_id i meddelande-jsonen så
+-- att en helt anonym anmälare (typ 1) också kan se handläggarens namn
+-- (admins-tabellen är redan publikt läsbar sedan tidigare)
+drop function if exists public.get_case_by_code(text);
+
+create or replace function public.get_case_by_code(p_code text)
+returns table(
+  case_id            uuid,
+  wb_token           text,
+  subject            text,
+  category           text,
+  department         text,
+  department_detail  text,
+  who_involved       text,
+  where_happened     text,
+  when_happened      text,
+  other_actions      text,
+  status             text,
+  created_at         timestamptz,
+  messages           jsonb
+)
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_case record;
+begin
+  select c.id, c.anonymous_token, c.subject, c.category, c.department, c.department_detail,
+         c.who_involved, c.where_happened, c.when_happened, c.other_actions,
+         c.status, c.created_at
+    into v_case
+    from public.cases c
+    where c.reporter_type = 'anonymous_code'
+      and c.access_code_hash = crypt(p_code, c.access_code_hash);
+
+  if v_case.id is null then
+    return;
+  end if;
+
+  return query
+    select
+      v_case.id, v_case.anonymous_token, v_case.subject, v_case.category, v_case.department, v_case.department_detail,
+      v_case.who_involved, v_case.where_happened, v_case.when_happened, v_case.other_actions,
+      v_case.status, v_case.created_at,
+      (select coalesce(jsonb_agg(jsonb_build_object(
+                'from_role', m.from_role, 'text', m.text, 'created_at', m.created_at,
+                'sender_id', m.sender_id
+              ) order by m.created_at), '[]'::jsonb)
+       from public.messages m where m.case_id = v_case.id);
+end;
+$$;
+
+grant execute on function public.get_case_by_code to anon, authenticated;
+
+-- 27. add_anonymous_message: rör inte sender_id (endast admin-sidan
+-- sätter den) — ingen ändring behövs i den funktionen.
