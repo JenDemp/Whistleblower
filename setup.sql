@@ -498,18 +498,25 @@ $$;
 grant execute on function public.create_anonymous_case to anon, authenticated;
 
 -- 21. get_case_by_code: admin_name fanns bara för att visa VEM
--- ärendet gick till — det konceptet finns inte längre (delad inkorg)
+-- ärendet gick till — det konceptet finns inte längre (delad inkorg).
+-- Utökad med department_detail + de fyra valfria fälten så att
+-- "Min anmälan"-modalen kan visa hela anmälan, inte bara meddelandet.
 drop function if exists public.get_case_by_code(text);
 
 create or replace function public.get_case_by_code(p_code text)
 returns table(
-  case_id      uuid,
-  wb_token     text,
-  category     text,
-  department   text,
-  status       text,
-  created_at   timestamptz,
-  messages     jsonb
+  case_id            uuid,
+  wb_token           text,
+  category           text,
+  department         text,
+  department_detail  text,
+  who_involved       text,
+  where_happened     text,
+  when_happened      text,
+  other_actions      text,
+  status             text,
+  created_at         timestamptz,
+  messages           jsonb
 )
 language plpgsql
 security definer
@@ -518,7 +525,9 @@ as $$
 declare
   v_case record;
 begin
-  select c.id, c.anonymous_token, c.category, c.department, c.status, c.created_at
+  select c.id, c.anonymous_token, c.category, c.department, c.department_detail,
+         c.who_involved, c.where_happened, c.when_happened, c.other_actions,
+         c.status, c.created_at
     into v_case
     from public.cases c
     where c.reporter_type = 'anonymous_code'
@@ -530,7 +539,8 @@ begin
 
   return query
     select
-      v_case.id, v_case.anonymous_token, v_case.category, v_case.department,
+      v_case.id, v_case.anonymous_token, v_case.category, v_case.department, v_case.department_detail,
+      v_case.who_involved, v_case.where_happened, v_case.when_happened, v_case.other_actions,
       v_case.status, v_case.created_at,
       (select coalesce(jsonb_agg(jsonb_build_object(
                 'from_role', m.from_role, 'text', m.text, 'created_at', m.created_at

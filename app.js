@@ -9,6 +9,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let me            = null;   // { id, email, reporterType, name?, phone?, title?, photo? }
 let meType        = null;   // 'employee' | 'admin'
 let activeCaseId  = null;
+let activeCaseExtra = null; // kategori/verksamhet/valfria fält för öppet ärende — se renderMsgs
 let activeDashTab = 'all';
 
 let reportType    = null;   // 'anonymous_code' | 'anonymous_email' | 'open' — for the report currently being created
@@ -222,7 +223,11 @@ function renderAnonCase() {
   const sp = document.getElementById('anon-status');
   sp.textContent = t('status.' + c.status);
   sp.className = `status-pill s-${c.status}`;
-  renderMsgs('anon-msgs', c.messages || [], 'employee');
+  renderMsgs('anon-msgs', c.messages || [], 'employee', {
+    category: c.category, department: c.department, departmentDetail: c.department_detail,
+    whoInvolved: c.who_involved, whereHappened: c.where_happened,
+    whenHappened: c.when_happened, otherActions: c.other_actions
+  });
   document.getElementById('anon-reply-input').value = '';
 }
 
@@ -541,7 +546,12 @@ async function openCaseEmp(caseId) {
   const sp = document.getElementById('c-status');
   sp.textContent = t('status.' + c.status);
   sp.className   = `status-pill s-${c.status}`;
-  renderMsgs('emp-msgs', msgs || [], 'employee');
+  activeCaseExtra = {
+    category: c.category, department: c.department, departmentDetail: c.department_detail,
+    whoInvolved: c.who_involved, whereHappened: c.where_happened,
+    whenHappened: c.when_happened, otherActions: c.other_actions
+  };
+  renderMsgs('emp-msgs', msgs || [], 'employee', activeCaseExtra);
   document.getElementById('emp-reply-input').value = '';
 }
 
@@ -559,7 +569,7 @@ async function handleEmpReply() {
   clearErrors();
   const { data: msgs } = await sb.from('messages').select('*')
     .eq('case_id', activeCaseId).order('created_at', { ascending: true });
-  renderMsgs('emp-msgs', msgs || [], 'employee');
+  renderMsgs('emp-msgs', msgs || [], 'employee', activeCaseExtra);
 }
 
 // ── ADMIN DASHBOARD ───────────────────────────────────────────
@@ -662,7 +672,12 @@ async function openCaseAdmin(caseId) {
     attWrap.appendChild(chip);
   }
 
-  renderMsgs('admin-msgs', msgs || [], 'admin');
+  activeCaseExtra = {
+    category: c.category, department: c.department, departmentDetail: c.department_detail,
+    whoInvolved: c.who_involved, whereHappened: c.where_happened,
+    whenHappened: c.when_happened, otherActions: c.other_actions
+  };
+  renderMsgs('admin-msgs', msgs || [], 'admin', activeCaseExtra);
   document.getElementById('admin-reply-input').value = '';
 }
 
@@ -684,7 +699,7 @@ async function handleAdminReply() {
   clearErrors();
   const { data: msgs } = await sb.from('messages').select('*')
     .eq('case_id', activeCaseId).order('created_at', { ascending: true });
-  renderMsgs('admin-msgs', msgs || [], 'admin');
+  renderMsgs('admin-msgs', msgs || [], 'admin', activeCaseExtra);
 }
 
 async function handleStatusChange() {
@@ -693,7 +708,11 @@ async function handleStatusChange() {
 }
 
 // ── RENDER MESSAGES ───────────────────────────────────────────
-function renderMsgs(id, messages, perspective) {
+// caseExtra (valfri): { category, department, departmentDetail,
+// whoInvolved, whereHappened, whenHappened, otherActions } — allt som
+// fylldes i utöver själva meddelandet, för att "Min anmälan"-modalen
+// ska kunna visa hela anmälan i sin ursprungliga blockstruktur.
+function renderMsgs(id, messages, perspective, caseExtra) {
   const c = document.getElementById(id);
   if (!messages.length) {
     c.innerHTML = `<div style="text-align:center;color:var(--muted);padding:32px;font-size:14px;">${t('common.noMessages')}</div>`;
@@ -718,7 +737,7 @@ function renderMsgs(id, messages, perspective) {
     if (isFirst) {
       const bubbleEl = wrap.querySelector('.bubble');
       bubbleEl.style.cursor = 'pointer';
-      bubbleEl.addEventListener('click', () => showReportModal(senderLabel, m.text, m.created_at));
+      bubbleEl.addEventListener('click', () => showReportModal(senderLabel, m.text, m.created_at, caseExtra));
     }
     c.appendChild(wrap);
   });
@@ -726,7 +745,7 @@ function renderMsgs(id, messages, perspective) {
 }
 
 // ── FÖRSTORAD VY AV ANMÄLAN ─────────────────────────────────────
-function showReportModal(title, text, createdAt) {
+function showReportModal(title, text, createdAt, caseExtra) {
   let modal = document.getElementById('report-modal');
   if (!modal) {
     modal = el('div', 'report-modal-overlay');
@@ -736,16 +755,35 @@ function showReportModal(title, text, createdAt) {
         <button class="report-modal-close" aria-label="Stäng">✕</button>
         <div class="report-modal-title"></div>
         <div class="report-modal-time"></div>
-        <div class="report-modal-text"></div>
+        <div class="report-modal-blocks"></div>
       </div>`;
     document.body.appendChild(modal);
     modal.addEventListener('click', e => { if (e.target === modal) closeReportModal(); });
     modal.querySelector('.report-modal-close').addEventListener('click', closeReportModal);
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeReportModal(); });
   }
+
+  const e = caseExtra || {};
+  const deptDetailLabel = e.departmentDetail
+    ? (translations[currentLang]['staber.' + e.departmentDetail] || e.departmentDetail)
+    : '';
+
+  const blocks = [];
+  if (e.category)   blocks.push([t('reportForm.category'), t('cat.' + e.category)]);
+  if (e.department)  blocks.push([t('reportForm.department'), t('dept.' + e.department) + (deptDetailLabel ? ' – ' + deptDetailLabel : '')]);
+  blocks.push([t('reportForm.message'), text]);
+  if (e.whoInvolved)    blocks.push([t('reportForm.qWho'), e.whoInvolved]);
+  if (e.whereHappened)  blocks.push([t('reportForm.qWhere'), e.whereHappened]);
+  if (e.whenHappened)   blocks.push([t('reportForm.qWhen'), e.whenHappened]);
+  if (e.otherActions)   blocks.push([t('reportForm.qActions'), e.otherActions]);
+
   modal.querySelector('.report-modal-title').textContent = title;
   modal.querySelector('.report-modal-time').textContent = fmt(createdAt);
-  modal.querySelector('.report-modal-text').textContent = text;
+  modal.querySelector('.report-modal-blocks').innerHTML = blocks.map(([label, val]) => `
+    <div class="report-modal-block">
+      <div class="report-modal-label">${esc(label)}</div>
+      <div class="report-modal-text">${esc(val)}</div>
+    </div>`).join('');
   modal.style.display = 'flex';
 }
 
