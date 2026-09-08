@@ -67,15 +67,10 @@
         <a href="#" class="sidebar-link" onclick="showLanding('skydd');return false;" data-i18n="landing.integrity">Integritetsinformation →</a>
 
         <div class="sidebar-section">
-          <p class="sidebar-label" data-i18n="landing.channelsTitle">Våra rapporteringskanaler</p>
-          <div class="channel-item">
-            <span class="channel-icon">💻</span>
-            <span data-i18n="landing.channelForm">Formulär på denna sida</span>
-          </div>
-          <div class="channel-item">
-            <span class="channel-icon">📞</span>
-            <a href="#" onclick="showLanding('kontakter');return false;" data-i18n="landing.channelDirect">Vill du prata med någon direkt istället? Klicka här</a>
-          </div>
+          <a href="#" class="direct-contact-card" onclick="showLanding('kontakter');return false;">
+            <span class="direct-contact-icon">📱</span>
+            <span class="direct-contact-text" data-i18n="landing.channelDirect">Vill du prata med någon direkt istället? Klicka här</span>
+          </a>
         </div>
       </div>
     </div>

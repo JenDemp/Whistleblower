@@ -176,16 +176,27 @@ a:hover { text-decoration: underline; }
   color: var(--muted);
   margin-bottom: 12px;
 }
-.channel-item {
+.direct-contact-card {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  font-size: 13.5px;
-  color: var(--text);
-  padding: 8px 0;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  padding: 32px 20px;
+  background: var(--bg-alt);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  text-decoration: none;
+  transition: border-color .15s, box-shadow .15s, transform .15s;
 }
-.channel-icon { font-size: 16px; flex-shrink: 0; }
-.channel-item a { color: var(--navy); font-weight: 600; text-decoration: underline; }
+.direct-contact-card:hover {
+  border-color: var(--gold-dark);
+  box-shadow: var(--shadow);
+  transform: translateY(-2px);
+  text-decoration: none;
+}
+.direct-contact-icon { font-size: 40px; }
+.direct-contact-text { color: var(--navy); font-weight: 600; font-size: 14.5px; line-height: 1.5; }
 
 /* ── TAB PANELS (Kontakter / Dina rättigheter) ─ */
 .tab-panel { display: none; }

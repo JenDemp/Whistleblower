@@ -22,8 +22,6 @@ const translations = {
     'landing.newReport': 'Skapa ny rapport →',
     'landing.followUp': 'Följ upp ärende',
     'landing.integrity': 'Integritetsinformation →',
-    'landing.channelsTitle': 'Våra rapporteringskanaler',
-    'landing.channelForm': 'Formulär på denna sida',
     'landing.channelDirect': 'Vill du prata med någon direkt istället? Klicka här',
 
     'contact.titleEm': 'Prata',
@@ -271,8 +269,6 @@ const translations = {
     'landing.newReport': 'Create new report →',
     'landing.followUp': 'Follow up on a case',
     'landing.integrity': 'Privacy information →',
-    'landing.channelsTitle': 'Our reporting channels',
-    'landing.channelForm': 'Form on this page',
     'landing.channelDirect': 'Want to talk to someone directly instead? Click here',
 
     'contact.titleEm': 'Talk',
