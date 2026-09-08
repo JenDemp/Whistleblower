@@ -218,7 +218,6 @@ async function handleCodeEntry() {
 function renderAnonCase() {
   const c = anonCaseData;
   document.getElementById('anon-token').textContent = c.wb_token;
-  document.getElementById('anon-to').textContent = c.admin_name || '—';
   document.getElementById('anon-cat').textContent = t('cat.' + c.category);
   const sp = document.getElementById('anon-status');
   sp.textContent = t('status.' + c.status);
