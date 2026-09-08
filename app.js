@@ -700,18 +700,58 @@ function renderMsgs(id, messages, perspective) {
     return;
   }
   c.innerHTML = '';
-  messages.forEach(m => {
-    const own  = m.from_role === perspective;
+  messages.forEach((m, idx) => {
+    const own = m.from_role === perspective;
+    const isFirst = idx === 0; // det första meddelandet är alltid själva anmälan
     const wrap = el('div', `msg ${own ? 'msg-own' : 'msg-other'}`);
+    const senderLabel = isFirst
+      ? (perspective === 'employee' ? t('common.myReport') : t('common.theReport'))
+      : (m.from_role === 'employee' ? t('common.reporter') : t('common.caseHandler'));
+
     wrap.innerHTML = `
-      <div class="bubble">
-        <div class="bubble-sender">${m.from_role === 'employee' ? t('common.reporter') : t('common.caseHandler')}</div>
+      <div class="bubble${isFirst ? ' bubble-report' : ''}">
+        <div class="bubble-sender">${senderLabel}${isFirst ? ' <span class="expand-hint">⤢</span>' : ''}</div>
         <div class="bubble-text">${esc(m.text)}</div>
         <div class="bubble-time">${fmt(m.created_at)}</div>
       </div>`;
+
+    if (isFirst) {
+      const bubbleEl = wrap.querySelector('.bubble');
+      bubbleEl.style.cursor = 'pointer';
+      bubbleEl.addEventListener('click', () => showReportModal(senderLabel, m.text, m.created_at));
+    }
     c.appendChild(wrap);
   });
   c.scrollTop = c.scrollHeight;
+}
+
+// ── FÖRSTORAD VY AV ANMÄLAN ─────────────────────────────────────
+function showReportModal(title, text, createdAt) {
+  let modal = document.getElementById('report-modal');
+  if (!modal) {
+    modal = el('div', 'report-modal-overlay');
+    modal.id = 'report-modal';
+    modal.innerHTML = `
+      <div class="report-modal">
+        <button class="report-modal-close" aria-label="Stäng">✕</button>
+        <div class="report-modal-title"></div>
+        <div class="report-modal-time"></div>
+        <div class="report-modal-text"></div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target === modal) closeReportModal(); });
+    modal.querySelector('.report-modal-close').addEventListener('click', closeReportModal);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeReportModal(); });
+  }
+  modal.querySelector('.report-modal-title').textContent = title;
+  modal.querySelector('.report-modal-time').textContent = fmt(createdAt);
+  modal.querySelector('.report-modal-text').textContent = text;
+  modal.style.display = 'flex';
+}
+
+function closeReportModal() {
+  const modal = document.getElementById('report-modal');
+  if (modal) modal.style.display = 'none';
 }
 
 // ── HELPERS ───────────────────────────────────────────────────
