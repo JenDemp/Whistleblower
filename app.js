@@ -224,7 +224,7 @@ function renderAnonCase() {
   sp.textContent = t('status.' + c.status);
   sp.className = `status-pill s-${c.status}`;
   renderMsgs('anon-msgs', c.messages || [], 'employee', {
-    category: c.category, department: c.department, departmentDetail: c.department_detail,
+    subject: c.subject, category: c.category, department: c.department, departmentDetail: c.department_detail,
     whoInvolved: c.who_involved, whereHappened: c.where_happened,
     whenHappened: c.when_happened, otherActions: c.other_actions
   });
@@ -405,10 +405,12 @@ document.addEventListener('change', (e) => {
 
 // ── CREATE CASE (grenar per anmälartyp) ─────────────────────────
 async function handleCreateCase() {
+  const subject  = val('case-subject');
   const category = val('cat-sel');
   const dept     = val('dept-sel');
   const message  = val('case-msg');
 
+  if (!subject)         return err('nc-err', t('err.subjectRequired'));
   if (!category)       return err('nc-err', t('err.chooseCategory'));
   if (!dept)            return err('nc-err', t('err.chooseDept'));
   if (!message || message.length < 10) return err('nc-err', t('err.messageShort'));
@@ -424,7 +426,7 @@ async function handleCreateCase() {
 
   if (reportType === 'anonymous_code') {
     const { data, error } = await sb.rpc('create_anonymous_case', {
-      p_category: category, p_department: dept, p_department_detail: deptDetail,
+      p_subject: subject, p_category: category, p_department: dept, p_department_detail: deptDetail,
       p_who_involved: who || null, p_where_happened: where || null,
       p_when_happened: when || null, p_what_happened: null,
       p_other_actions: actions || null, p_message: message
@@ -443,7 +445,7 @@ async function handleCreateCase() {
   const insertPayload = {
     reporter_type: reportType,
     employee_id: me.id,
-    category, department: dept, department_detail: deptDetail,
+    subject, category, department: dept, department_detail: deptDetail,
     who_involved: who || null, where_happened: where || null,
     when_happened: when || null, other_actions: actions || null,
     status: 'open'
@@ -512,7 +514,6 @@ async function showEmpDash(filter) {
     const msgs    = (c.messages || []).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
     const lastMsg = msgs.at(-1);
     const unread  = lastMsg && lastMsg.from_role === 'admin';
-    const firstMsg = msgs[0];
 
     const div = el('div', `case-card${unread ? ' unread' : ''}`);
     div.innerHTML = `
@@ -520,11 +521,11 @@ async function showEmpDash(filter) {
         <span class="token">${c.anonymous_token}</span>
         <span class="status-pill s-${c.status}">${t('status.' + c.status)}</span>
       </div>
+      <div class="case-subject-line">${esc(c.subject || '—')}</div>
       <div class="case-meta">
         <span>${t('cat.' + c.category)}</span>
         <span>${fmt(c.created_at)}</span>
       </div>
-      <div class="case-preview">${firstMsg ? esc(firstMsg.text.slice(0, 130)) : ''}${firstMsg && firstMsg.text.length > 130 ? '…' : ''}</div>
       ${unread ? `<div class="new-badge">${t('common.newReply')}</div>` : ''}`;
     div.addEventListener('click', () => openCaseEmp(c.id));
     list.appendChild(div);
@@ -547,7 +548,7 @@ async function openCaseEmp(caseId) {
   sp.textContent = t('status.' + c.status);
   sp.className   = `status-pill s-${c.status}`;
   activeCaseExtra = {
-    category: c.category, department: c.department, departmentDetail: c.department_detail,
+    subject: c.subject, category: c.category, department: c.department, departmentDetail: c.department_detail,
     whoInvolved: c.who_involved, whereHappened: c.where_happened,
     whenHappened: c.when_happened, otherActions: c.other_actions
   };
@@ -584,7 +585,7 @@ async function showAdminDash() {
   // employee_id är avsiktligt exkluderat — anonymitet upprätthålls på query-nivå.
   // Ingen mottagarfiltrering: delad inkorg, RLS avgör vilka rader admins ser.
   const { data: cases, error } = await sb.from('cases')
-    .select('id, anonymous_token, reporter_type, reporter_name, category, department, status, created_at, messages(*)')
+    .select('id, anonymous_token, reporter_type, reporter_name, subject, category, department, status, created_at, messages(*)')
     .order('created_at', { ascending: false });
 
   if (error) { list.innerHTML = `<div class="empty-state">Fel: ${error.message}</div>`; return; }
@@ -599,7 +600,6 @@ async function showAdminDash() {
     const msgs   = (c.messages || []).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
     const last   = msgs.at(-1);
     const unread = last && last.from_role === 'employee';
-    const first  = msgs[0];
     const typeLabel = c.reporter_type === 'open'
       ? (c.reporter_name || t('reportType.t3title'))
       : c.reporter_type === 'anonymous_email' ? t('reportType.t2title') : t('reportType.t1title');
@@ -610,13 +610,13 @@ async function showAdminDash() {
         <span class="token">${c.anonymous_token}</span>
         <span class="status-pill s-${c.status}">${t('status.' + c.status)}</span>
       </div>
+      <div class="case-subject-line">${esc(c.subject || '—')}</div>
       <div class="case-meta">
         <span class="type-tag">${esc(typeLabel)}</span>
         <span>${t('cat.' + c.category)}</span>
         <span>${fmt(c.created_at)}</span>
         <span>${msgs.length} ${t('common.messages')}</span>
       </div>
-      <div class="case-preview">${first ? esc(first.text.slice(0, 130)) : ''}${first && first.text.length > 130 ? '…' : ''}</div>
       ${unread ? `<div class="new-badge">${t('common.newMessage')}</div>` : ''}`;
     div.addEventListener('click', () => openCaseAdmin(c.id));
     list.appendChild(div);
@@ -630,11 +630,12 @@ async function openCaseAdmin(caseId) {
 
   const [{ data: c }, { data: msgs }, { data: attachments }] = await Promise.all([
     // employee_id är aldrig med i select — anonymitet upprätthålls på query-nivå
-    sb.from('cases').select('id, anonymous_token, reporter_type, reporter_name, reporter_phone, category, department, department_detail, status, who_involved, where_happened, when_happened, other_actions').eq('id', caseId).single(),
+    sb.from('cases').select('id, anonymous_token, reporter_type, reporter_name, reporter_phone, subject, category, department, department_detail, status, who_involved, where_happened, when_happened, other_actions').eq('id', caseId).single(),
     sb.from('messages').select('*').eq('case_id', caseId).order('created_at', { ascending: true }),
     sb.from('attachments').select('*').eq('case_id', caseId)
   ]);
 
+  document.getElementById('ac-subject').textContent = c.subject || '';
   document.getElementById('ac-token').textContent = c.anonymous_token;
   document.getElementById('ac-cat').textContent   = t('cat.' + c.category);
   const deptDetailLabel = c.department_detail
@@ -653,14 +654,6 @@ async function openCaseAdmin(caseId) {
     anonNoticeEl.style.display = 'flex';
   }
 
-  const detailsWrap = document.getElementById('ac-details');
-  const detailFields = [
-    ['reportForm.qWho', c.who_involved], ['reportForm.qWhere', c.where_happened],
-    ['reportForm.qWhen', c.when_happened], ['reportForm.qActions', c.other_actions]
-  ].filter(([, v]) => v);
-  detailsWrap.innerHTML = detailFields.map(([labelKey, v]) =>
-    `<div class="case-detail-item"><dt>${t(labelKey)}</dt><dd>${esc(v)}</dd></div>`).join('');
-
   const attWrap = document.getElementById('ac-attachments');
   attWrap.innerHTML = '';
   for (const a of (attachments || [])) {
@@ -673,7 +666,7 @@ async function openCaseAdmin(caseId) {
   }
 
   activeCaseExtra = {
-    category: c.category, department: c.department, departmentDetail: c.department_detail,
+    subject: c.subject, category: c.category, department: c.department, departmentDetail: c.department_detail,
     whoInvolved: c.who_involved, whereHappened: c.where_happened,
     whenHappened: c.when_happened, otherActions: c.other_actions
   };
@@ -769,6 +762,7 @@ function showReportModal(title, text, createdAt, caseExtra) {
     : '';
 
   const blocks = [];
+  if (e.subject)    blocks.push([t('reportForm.subject'), e.subject]);
   if (e.category)   blocks.push([t('reportForm.category'), t('cat.' + e.category)]);
   if (e.department)  blocks.push([t('reportForm.department'), t('dept.' + e.department) + (deptDetailLabel ? ' – ' + deptDetailLabel : '')]);
   blocks.push([t('reportForm.message'), text]);

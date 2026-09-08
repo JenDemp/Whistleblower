@@ -445,6 +445,11 @@
       </p>
 
       <form id="new-case-form" onsubmit="return false;">
+        <div class="form-group">
+          <label for="case-subject" data-i18n="reportForm.subject">Ämnesrad</label>
+          <input type="text" id="case-subject" maxlength="120" data-i18n-placeholder="reportForm.subjectPh" placeholder="Kort sammanfattning av ditt ärende">
+        </div>
+
         <div class="form-row">
           <div class="form-group">
             <label for="cat-sel" data-i18n="reportForm.category">Kategori</label>
@@ -606,6 +611,7 @@
       <div class="chat-head">
         <button class="btn-back" onclick="showAdminDash()" data-i18n="back.dash">← Tillbaka</button>
         <div class="chat-head-info">
+          <div id="ac-subject" class="chat-subject"></div>
           <div><span data-i18n="anonCase.case">Ärende:</span> <span id="ac-token" class="token"></span></div>
           <div style="font-size:13px;color:var(--muted);" id="ac-reporter-info"></div>
           <div style="font-size:13px;color:var(--muted);"><span data-i18n="adminCase.category">Kategori:</span> <span id="ac-cat"></span> · <span id="ac-dept"></span></div>
@@ -623,8 +629,6 @@
       <div class="notice notice-amber" style="margin:0 0 12px;" id="ac-anon-notice" data-i18n="adminCase.anonNotice">
         🔒 Denna anmälare är anonym. Deras verkliga identitet är inte tillgänglig för dig och kan inte spåras.
       </div>
-
-      <div id="ac-details" class="case-details"></div>
 
       <div id="ac-attachments" class="attachments-list"></div>
 

@@ -568,3 +568,116 @@ grant execute on function public.get_case_by_code to anon, authenticated;
 
 -- Dennis admin-raden finns redan (skapades tidigare) — bara sätt flaggan:
 -- UPDATE public.admins SET is_super_admin = true WHERE id = 'DENNIS_UUID';
+
+
+-- ================================================================
+-- STEG 5 (TILLÄGG – kör detta block, EJ destruktivt):
+-- Ämnesrad per ärende. "Inkomna ärenden" visade tidigare de första
+-- 130 tecknen av hela anmälningstexten som förhandsvisning, vilket
+-- blev rörigt. Nu skriver anmälaren en kort ämnesrad separat.
+-- ================================================================
+
+-- 22. Ny kolumn
+alter table public.cases add column if not exists subject text;
+
+-- 23. create_anonymous_case: lägg till p_subject
+drop function if exists public.create_anonymous_case(text,text,text,text,text,text,text,text,text);
+
+create or replace function public.create_anonymous_case(
+  p_subject             text,
+  p_category            text,
+  p_department          text,
+  p_department_detail   text,
+  p_who_involved        text,
+  p_where_happened      text,
+  p_when_happened       text,
+  p_what_happened       text,
+  p_other_actions       text,
+  p_message             text
+)
+returns table(case_id uuid, access_code text, wb_token text)
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_code  text;
+  v_token text;
+  v_id    uuid;
+begin
+  v_code := replace(replace(replace(encode(gen_random_bytes(18), 'base64'), '/', ''), '+', ''), '=', '');
+  v_token := public.generate_wb_token();
+
+  insert into public.cases (
+    anonymous_token, reporter_type, access_code_hash,
+    subject, category, department, department_detail,
+    who_involved, where_happened, when_happened, what_happened, other_actions,
+    status
+  ) values (
+    v_token, 'anonymous_code', crypt(v_code, gen_salt('bf')),
+    p_subject, p_category, p_department, p_department_detail,
+    p_who_involved, p_where_happened, p_when_happened, p_what_happened, p_other_actions,
+    'open'
+  )
+  returning id into v_id;
+
+  insert into public.messages (case_id, from_role, text)
+  values (v_id, 'employee', p_message);
+
+  return query select v_id, v_code, v_token;
+end;
+$$;
+
+grant execute on function public.create_anonymous_case to anon, authenticated;
+
+-- 24. get_case_by_code: lägg till subject
+drop function if exists public.get_case_by_code(text);
+
+create or replace function public.get_case_by_code(p_code text)
+returns table(
+  case_id            uuid,
+  wb_token           text,
+  subject            text,
+  category           text,
+  department         text,
+  department_detail  text,
+  who_involved       text,
+  where_happened     text,
+  when_happened      text,
+  other_actions      text,
+  status             text,
+  created_at         timestamptz,
+  messages           jsonb
+)
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_case record;
+begin
+  select c.id, c.anonymous_token, c.subject, c.category, c.department, c.department_detail,
+         c.who_involved, c.where_happened, c.when_happened, c.other_actions,
+         c.status, c.created_at
+    into v_case
+    from public.cases c
+    where c.reporter_type = 'anonymous_code'
+      and c.access_code_hash = crypt(p_code, c.access_code_hash);
+
+  if v_case.id is null then
+    return;
+  end if;
+
+  return query
+    select
+      v_case.id, v_case.anonymous_token, v_case.subject, v_case.category, v_case.department, v_case.department_detail,
+      v_case.who_involved, v_case.where_happened, v_case.when_happened, v_case.other_actions,
+      v_case.status, v_case.created_at,
+      (select coalesce(jsonb_agg(jsonb_build_object(
+                'from_role', m.from_role, 'text', m.text, 'created_at', m.created_at
+              ) order by m.created_at), '[]'::jsonb)
+       from public.messages m where m.case_id = v_case.id);
+end;
+$$;
+
+grant execute on function public.get_case_by_code to anon, authenticated;

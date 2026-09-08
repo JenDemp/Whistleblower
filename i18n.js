@@ -155,6 +155,8 @@ const translations = {
     'reportForm.subtitleAnon': 'Din anmälan skickas anonymt. Mottagaren ser enbart ditt anonyma ärendenummer.',
     'reportForm.subtitleOpen': 'Din anmälan skickas med dina kontaktuppgifter synliga för mottagaren.',
     'reportForm.recipient': 'Välj mottagare',
+    'reportForm.subject': 'Ämnesrad',
+    'reportForm.subjectPh': 'Kort sammanfattning av ditt ärende',
     'reportForm.category': 'Kategori',
     'reportForm.department': 'Verksamhet',
     'reportForm.staberChoose': 'Vilken stab?',
@@ -231,6 +233,7 @@ const translations = {
     'dash.emptyFiltered': 'Inga ärenden i denna kategori.',
     'adminDash.empty': 'Inga inkomna ärenden ännu.',
 
+    'err.subjectRequired': 'Skriv en ämnesrad.',
     'err.chooseRecipient': 'Välj en mottagare.',
     'err.chooseCategory': 'Välj en kategori.',
     'err.chooseDept': 'Välj en verksamhet.',
@@ -407,6 +410,8 @@ const translations = {
     'reportForm.subtitleAnon': 'Your report is submitted anonymously. The recipient only sees your anonymous case number.',
     'reportForm.subtitleOpen': 'Your report is submitted with your contact details visible to the recipient.',
     'reportForm.recipient': 'Choose recipient',
+    'reportForm.subject': 'Subject',
+    'reportForm.subjectPh': 'Brief summary of your case',
     'reportForm.category': 'Category',
     'reportForm.department': 'Department',
     'reportForm.staberChoose': 'Which staff function?',
@@ -483,6 +488,7 @@ const translations = {
     'dash.emptyFiltered': 'No cases in this category.',
     'adminDash.empty': 'No cases received yet.',
 
+    'err.subjectRequired': 'Write a subject line.',
     'err.chooseRecipient': 'Choose a recipient.',
     'err.chooseCategory': 'Choose a category.',
     'err.chooseDept': 'Choose a department.',
