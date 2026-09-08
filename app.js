@@ -729,8 +729,8 @@ function renderMsgs(id, messages, perspective, caseExtra) {
 
     wrap.innerHTML = `
       <div class="bubble${isFirst ? ' bubble-report' : ''}">
-        <div class="bubble-sender">${senderLabel}${isFirst ? ' <span class="expand-hint">⤢</span>' : ''}</div>
-        <div class="bubble-text">${esc(m.text)}</div>
+        <div class="bubble-sender">${senderLabel}</div>
+        <div class="bubble-text${isFirst ? ' bubble-cta' : ''}">${isFirst ? `📄 ${t('common.clickToReadReport')}` : esc(m.text)}</div>
         <div class="bubble-time">${fmt(m.created_at)}</div>
       </div>`;
 

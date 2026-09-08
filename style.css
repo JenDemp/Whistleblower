@@ -357,9 +357,11 @@ a:hover { text-decoration: underline; }
 .bubble-time   { font-size: 11px; opacity: .55; margin-top: 6px; }
 
 /* ── FÖRSTA MEDDELANDET (anmälan) ────────── */
-.bubble-report { max-width: 85% !important; transition: box-shadow .15s, transform .15s; }
+.bubble-report { transition: box-shadow .15s, transform .15s; }
 .bubble-report:hover { box-shadow: 0 4px 16px rgba(0,0,0,.12); transform: translateY(-1px); }
-.expand-hint { opacity: .7; font-size: 11px; margin-left: 4px; }
+.bubble-cta { font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.msg-own   .bubble-cta { color: var(--gold); }
+.msg-other .bubble-cta { color: var(--navy); }
 
 /* ── RAPPORT-MODAL ────────────────────────── */
 .report-modal-overlay {
