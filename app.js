@@ -29,6 +29,10 @@ let anonCaseData  = null;   // cached result of get_case_by_code RPC
 // från. Utan den kan ett långsamt svar skriva in sig i fel vy.
 let navToken = 0;
 
+// Sätts medan vi återställer en vy från webbläsarhistoriken, så att
+// återställningen inte i sin tur skriver nya historikposter.
+let suppressHistory = false;
+
 function show(id) {
   const view = document.getElementById(id);
   if (!view) { console.error('Okänd vy:', id); return; }
@@ -37,8 +41,64 @@ function show(id) {
   view.style.display = 'block';
   clearErrors();
   updateHeader();
+  recordHistory({
+    view: id,
+    caseId: (id === 'view-case-emp' || id === 'view-case-admin') ? activeCaseId : null
+  });
   return navToken;
 }
+
+// ── WEBBLÄSARHISTORIK ─────────────────────────────────────────
+// Utan detta lämnar bakåtknappen (och svepgesten på mobil) hela sajten
+// istället för att gå ett steg tillbaka — mitt i en påbörjad anmälan är
+// det illa.
+function recordHistory(state) {
+  if (suppressHistory) return;
+  const cur = history.state;
+  // Första vyn efter sidladdning ersätter webbläsarens tomma post.
+  // Annars hade man behövt trycka bakåt två gånger för att lämna sajten.
+  if (!cur) { history.replaceState(state, ''); return; }
+  const same = cur.view === state.view
+    && (cur.caseId  || null) === (state.caseId  || null)
+    && (cur.section || null) === (state.section || null);
+  if (same) history.replaceState(state, '');
+  else      history.pushState(state, '');
+}
+
+window.addEventListener('popstate', async e => {
+  suppressHistory = true;
+  try {
+    await restoreView(e.state);
+  } catch (err) {
+    console.error('Kunde inte återställa vyn:', err);
+  } finally {
+    suppressHistory = false;
+  }
+});
+
+async function restoreView(state) {
+  if (!state || !state.view) { showLanding(); return; }
+  switch (state.view) {
+    case 'view-landing':    showLanding(state.section || undefined); break;
+    case 'view-emp-dash':   await showEmpDash(); break;
+    case 'view-admin-dash': await showAdminDash(); break;
+    case 'view-case-emp':   state.caseId ? await openCaseEmp(state.caseId)   : await showEmpDash();   break;
+    case 'view-case-admin': state.caseId ? await openCaseAdmin(state.caseId) : await showAdminDash(); break;
+    // Anmälningsformuläret återställs som ren vy. showNewCase() hade
+    // nollat fälten och raderat det användaren hunnit skriva.
+    default: show(state.view);
+  }
+}
+
+// Varnar bara när man faktiskt lämnar sajten med en påbörjad anmälan.
+window.addEventListener('beforeunload', e => {
+  const view = document.getElementById('view-new-case');
+  const msg  = document.getElementById('case-msg');
+  if (view && view.style.display === 'block' && msg && msg.value.trim()) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
 
 function updateHeader() {
   const logoutBtn = document.getElementById('btn-logout');
@@ -141,7 +201,13 @@ function showLoadError() {
 
 // ── LANDING ───────────────────────────────────────────────────
 function showLanding(section) {
+  // show() skriver en historikpost utan section — låt den vara tyst och
+  // skriv en enda korrekt post här nedan istället.
+  const wasSuppressed = suppressHistory;
+  suppressHistory = true;
   show('view-landing');
+  suppressHistory = wasSuppressed;
+
   document.querySelector('.landing-grid').style.display = section ? 'none' : 'grid';
   document.querySelectorAll('.tab-panel').forEach(p => { p.style.display = 'none'; });
   if (section) {
@@ -149,6 +215,7 @@ function showLanding(section) {
     if (panel) panel.style.display = 'block';
   }
   window.scrollTo(0, 0);
+  recordHistory({ view: 'view-landing', section: section || null });
 }
 
 function onLangChange() {
