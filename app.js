@@ -1,5 +1,11 @@
 'use strict';
 
+// Fångar fel som annars försvinner tyst i konsolen. Utan detta ser en
+// trasig knapp ut som att "ingenting händer" — svårt att felsöka.
+window.addEventListener('unhandledrejection', e => {
+  console.error('Ohanterat fel:', e.reason);
+});
+
 // ── SUPABASE ──────────────────────────────────────────────────
 const SUPABASE_URL = 'https://zovlagbblznesvjzhplh.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvdmxhZ2JibHpuZXN2anpocGxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgzMzE1NTEsImV4cCI6MjEwMzkwNzU1MX0.bSjcl6qyZGazd5VHMZKsbKfffRUUpPbMASFm9jL7U48';
@@ -19,11 +25,19 @@ let anonCaseCode  = null;   // access code for the anonymous case currently open
 let anonCaseData  = null;   // cached result of get_case_by_code RPC
 
 // ── VIEW ROUTER ───────────────────────────────────────────────
+// Räknare som ogiltigförklarar svar från en vy man redan navigerat bort
+// från. Utan den kan ett långsamt svar skriva in sig i fel vy.
+let navToken = 0;
+
 function show(id) {
+  const view = document.getElementById(id);
+  if (!view) { console.error('Okänd vy:', id); return; }
+  navToken++;
   document.querySelectorAll('.view').forEach(v => { v.style.display = 'none'; });
-  document.getElementById(id).style.display = 'block';
+  view.style.display = 'block';
   clearErrors();
   updateHeader();
+  return navToken;
 }
 
 function updateHeader() {
@@ -33,10 +47,11 @@ function updateHeader() {
   if (me && meType === 'admin') {
     logoutBtn.style.display = 'inline-flex';
     adminLink.style.display = 'none';
-    const roleLine = (me.isSuperAdmin ? 'SUPER-ADMIN · ' : '') + (me.title || '');
+    const roleLine = esc((me.isSuperAdmin ? 'SUPER-ADMIN · ' : '') + (me.title || ''));
+    const name = esc(me.name || '');
     profileEl.innerHTML = me.photo
-      ? `<div class="admin-profile"><img src="${me.photo}" alt="${me.name}"><div><div class="a-name">${me.name}</div><div class="a-role">${roleLine}</div></div></div>`
-      : `<div class="admin-profile"><div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;color:var(--gold);font-weight:700;font-size:16px;border:2px solid var(--gold);">${(me.name||'?').charAt(0)}</div><div><div class="a-name">${me.name}</div><div class="a-role">${roleLine}</div></div></div>`;
+      ? `<div class="admin-profile"><img src="${esc(me.photo)}" alt="${name}"><div><div class="a-name">${name}</div><div class="a-role">${roleLine}</div></div></div>`
+      : `<div class="admin-profile"><div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;color:var(--gold);font-weight:700;font-size:16px;border:2px solid var(--gold);">${esc((me.name||'?').charAt(0))}</div><div><div class="a-name">${name}</div><div class="a-role">${roleLine}</div></div></div>`;
     profileEl.style.display = 'block';
   } else if (me && meType === 'employee') {
     logoutBtn.style.display = 'inline-flex';
@@ -55,47 +70,73 @@ async function handleLogout() {
 
 // ── AUTH: react to session changes ──────────────────────────────
 sb.auth.onAuthStateChange(async (event, session) => {
-  if (event === 'PASSWORD_RECOVERY') {
-    show('view-reset-password');
-  } else if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
-    await loadUserContext(session);
-  } else if (event === 'SIGNED_OUT') {
+  if (event === 'PASSWORD_RECOVERY') { show('view-reset-password'); return; }
+
+  if (event === 'SIGNED_OUT') {
     me = null; meType = null; activeCaseId = null; reportType = null;
+    adminsMapCache = null;
     showLanding();
-  } else if (event === 'INITIAL_SESSION' && !session) {
-    showLanding();
+    return;
   }
+
+  if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
+    // Supabase skickar SIGNED_IN igen vid tokenförnyelse och när fliken
+    // återfår fokus. Utan den här spärren renderas dashboarden om och
+    // användaren kastas ut ur ärendet de läser — det är den "krasch
+    // tillbaka till startsidan" som upplevts.
+    if (me && me.id === session.user.id) return;
+    await loadUserContext(session);
+    return;
+  }
+
+  if (event === 'INITIAL_SESSION' && !session) showLanding();
 });
 
 async function loadUserContext(session) {
+  let profile;
   try {
-    const { data: profile, error } = await sb
+    const { data, error } = await sb
       .from('profiles')
       .select('reporter_type, is_admin, name, phone, admins(id, name, title, role, photo, is_super_admin)')
       .eq('id', session.user.id)
       .single();
     if (error) throw error;
-
-    me = { id: session.user.id, email: session.user.email, reporterType: profile.reporter_type, name: profile.name, phone: profile.phone };
-
-    if (profile.is_admin && profile.admins) {
-      meType = 'admin';
-      me.name  = profile.admins.name;
-      me.title = profile.admins.title;
-      me.photo = profile.admins.photo;
-      me.isSuperAdmin = !!profile.admins.is_super_admin;
-      await showAdminDash();
-    } else {
-      meType = 'employee';
-      // If we arrived here via the reporter-type → register flow, continue straight to the form
-      if (reportType) await showNewCase();
-      else await showEmpDash();
-    }
+    profile = data;
   } catch (e) {
-    console.error('Kunde inte ladda användarkontexten:', e);
+    // Profilen går inte att läsa — sessionen är obrukbar, logga ut.
+    console.error('Kunde inte läsa profilen:', e);
     await sb.auth.signOut();
     showLanding();
+    return;
   }
+
+  me = { id: session.user.id, email: session.user.email, reporterType: profile.reporter_type, name: profile.name, phone: profile.phone };
+
+  if (profile.is_admin && profile.admins) {
+    meType = 'admin';
+    me.name  = profile.admins.name;
+    me.title = profile.admins.title;
+    me.photo = profile.admins.photo;
+    me.isSuperAdmin = !!profile.admins.is_super_admin;
+  } else {
+    meType = 'employee';
+  }
+
+  try {
+    if (meType === 'admin') await showAdminDash();
+    else if (reportType) await showNewCase();   // kom hit via välj typ → registrera
+    else await showEmpDash();
+  } catch (e) {
+    // Renderingen sprack — nästan alltid övergående (nätverk, långsam query).
+    // Logga INTE ut användaren för det; visa felet istället.
+    console.error('Kunde inte rendera vyn:', e);
+    showLoadError();
+  }
+}
+
+function showLoadError() {
+  const list = document.getElementById(meType === 'admin' ? 'admin-cases-list' : 'emp-cases-list');
+  if (list) list.innerHTML = `<div class="empty-state">${t('err.loadFailed')}</div>`;
 }
 
 // ── LANDING ───────────────────────────────────────────────────
@@ -126,6 +167,7 @@ function startNewReport() {
 // behöva välja typ igen eller registrera sig på nytt — deras konto har
 // redan en fast reporter_type (satt vid registreringen).
 function newCaseForExistingUser() {
+  if (!me) { showLanding(); return; }
   reportType = me.reporterType;
   showNewCase();
 }
@@ -490,9 +532,10 @@ function handleCodeConfirmDone() {
 
 // ── EMPLOYEE DASHBOARD (typ 2 & 3) ────────────────────────────
 async function showEmpDash(filter) {
+  if (!me) return;
   activeDashTab = filter || activeDashTab || 'all';
-  document.querySelectorAll('.sub-tab').forEach(b => b.classList.toggle('active', b.dataset.stab === activeDashTab));
-  show('view-emp-dash');
+  document.querySelectorAll('#view-emp-dash .sub-tab').forEach(b => b.classList.toggle('active', b.dataset.stab === activeDashTab));
+  const token = show('view-emp-dash');
 
   const list = document.getElementById('emp-cases-list');
   list.innerHTML = `<div class="empty-state">${t('common.loading')}</div>`;
@@ -502,7 +545,8 @@ async function showEmpDash(filter) {
   if (activeDashTab === 'resolved') q = q.eq('status', 'resolved');
 
   const { data: cases, error } = await q;
-  if (error) { list.innerHTML = `<div class="empty-state">Fel: ${error.message}</div>`; return; }
+  if (token !== navToken) return;
+  if (error) { list.innerHTML = `<div class="empty-state">${t('err.loadFailed')}</div>`; return; }
 
   list.innerHTML = '';
   if (!cases || !cases.length) {
@@ -539,12 +583,15 @@ async function showEmpDash(filter) {
 // ── CASE DETAIL – Employee ─────────────────────────────────────
 async function openCaseEmp(caseId) {
   activeCaseId = caseId;
-  show('view-case-emp');
+  const token = show('view-case-emp');
 
   const [{ data: c }, { data: msgs }] = await Promise.all([
     sb.from('cases').select('*').eq('id', caseId).single(),
     sb.from('messages').select('*').eq('case_id', caseId).order('created_at', { ascending: true })
   ]);
+
+  if (token !== navToken) return;         // användaren har navigerat vidare
+  if (!c) { err('emp-reply-err', t('err.caseLoadFailed')); return; }
 
   document.getElementById('c-token').textContent = c.anonymous_token;
   document.getElementById('c-cat').textContent   = t('cat.' + c.category);
@@ -582,13 +629,14 @@ async function handleEmpReply() {
 let activeAdminDashTab = 'all';
 
 async function showAdminDash(filter) {
+  if (!me) return;
   activeAdminDashTab = filter || activeAdminDashTab || 'all';
   document.querySelectorAll('#view-admin-dash .sub-tab').forEach(b => {
     b.classList.toggle('active', b.dataset.stab === activeAdminDashTab);
   });
   document.getElementById('admin-name').textContent  = me.name  || me.email || '';
   document.getElementById('admin-title').textContent = me.title || '';
-  show('view-admin-dash');
+  const token = show('view-admin-dash');
 
   const list = document.getElementById('admin-cases-list');
   list.innerHTML = `<div class="empty-state">${t('common.loading')}</div>`;
@@ -602,7 +650,8 @@ async function showAdminDash(filter) {
 
   const { data: cases, error } = await q;
 
-  if (error) { list.innerHTML = `<div class="empty-state">Fel: ${error.message}</div>`; return; }
+  if (token !== navToken) return;
+  if (error) { list.innerHTML = `<div class="empty-state">${t('err.loadFailed')}</div>`; return; }
 
   list.innerHTML = '';
   if (!cases || !cases.length) {
@@ -645,7 +694,7 @@ async function showAdminDash(filter) {
 // ── CASE DETAIL – Admin ─────────────────────────────────────────
 async function openCaseAdmin(caseId) {
   activeCaseId = caseId;
-  show('view-case-admin');
+  const token = show('view-case-admin');
 
   const [{ data: c }, { data: msgs }, { data: attachments }] = await Promise.all([
     // employee_id är aldrig med i select — anonymitet upprätthålls på query-nivå
@@ -653,6 +702,9 @@ async function openCaseAdmin(caseId) {
     sb.from('messages').select('*').eq('case_id', caseId).order('created_at', { ascending: true }),
     sb.from('attachments').select('*').eq('case_id', caseId)
   ]);
+
+  if (token !== navToken) return;         // användaren har navigerat vidare
+  if (!c) { err('admin-reply-err', t('err.caseLoadFailed')); return; }
 
   document.getElementById('ac-subject').textContent = c.subject || '';
   document.getElementById('ac-token').textContent = c.anonymous_token;
@@ -716,8 +768,15 @@ async function handleAdminReply() {
 }
 
 async function handleStatusChange() {
-  const status = document.getElementById('ac-status-sel').value;
-  await sb.from('cases').update({ status }).eq('id', activeCaseId);
+  const sel = document.getElementById('ac-status-sel');
+  const status = sel.value;
+  sel.disabled = true;
+  const { error } = await sb.from('cases').update({ status }).eq('id', activeCaseId);
+  sel.disabled = false;
+  if (error) {
+    console.error('Kunde inte uppdatera status:', error);
+    err('admin-reply-err', t('err.statusUpdateFailed'));
+  }
 }
 
 // ── RENDER MESSAGES ───────────────────────────────────────────

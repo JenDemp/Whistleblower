@@ -246,6 +246,9 @@ const translations = {
     'err.enterEmailFirst': 'Ange din e-postadress ovan och klicka sedan på "Glömt lösenord?".',
     'err.enterPw': 'Ange ett lösenord.',
     'err.attachmentsFailed': 'Anmälan skickades, men följande bilagor kunde inte laddas upp:',
+    'err.loadFailed': 'Kunde inte hämta uppgifterna. Kontrollera din uppkoppling och ladda om sidan.',
+    'err.caseLoadFailed': 'Kunde inte öppna ärendet. Gå tillbaka och försök igen.',
+    'err.statusUpdateFailed': 'Statusen kunde inte sparas. Försök igen.',
   },
 
   en: {
@@ -493,6 +496,9 @@ const translations = {
     'err.enterEmailFirst': 'Enter your email address above, then click "Forgot password?".',
     'err.enterPw': 'Enter a password.',
     'err.attachmentsFailed': 'Your report was submitted, but the following attachments could not be uploaded:',
+    'err.loadFailed': 'Could not load the data. Check your connection and reload the page.',
+    'err.caseLoadFailed': 'Could not open the case. Go back and try again.',
+    'err.statusUpdateFailed': 'The status could not be saved. Please try again.',
   }
 };
 
