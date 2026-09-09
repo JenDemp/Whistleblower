@@ -752,3 +752,71 @@ grant execute on function public.get_case_by_code to anon, authenticated;
 
 -- 27. add_anonymous_message: rör inte sender_id (endast admin-sidan
 -- sätter den) — ingen ändring behövs i den funktionen.
+
+
+-- ================================================================
+-- STEG 7 (TILLÄGG – kör detta block, EJ destruktivt):
+-- Atomiskt ärendeskapande för typ 2 & 3.
+--
+-- Tidigare gjorde appen två separata anrop: först INSERT i cases,
+-- sedan INSERT i messages. Gick det andra fel (nätverksglapp, stängd
+-- flik) blev ett ärende kvar UTAN meddelande — anmälarens text var
+-- borta, och admin såg ett tomt ärende. Typ 1 gjorde redan rätt via
+-- create_anonymous_case; det här ger typ 2 & 3 samma garanti.
+--
+-- OBS: security INVOKER (inte DEFINER) — funktionen körs som den
+-- inloggade användaren, så befintliga RLS-policies gäller precis som
+-- förut. Vinsten är enbart att båda inserts sker i EN transaktion:
+-- misslyckas meddelandet rullas ärendet tillbaka automatiskt.
+-- ================================================================
+
+create or replace function public.create_case(
+  p_reporter_type       text,
+  p_subject             text,
+  p_category            text,
+  p_department          text,
+  p_department_detail   text,
+  p_who_involved        text,
+  p_where_happened      text,
+  p_when_happened       text,
+  p_other_actions       text,
+  p_message             text,
+  p_reporter_name       text,
+  p_reporter_phone      text
+)
+returns table(case_id uuid, wb_token text)
+language plpgsql
+security invoker
+set search_path = public, extensions
+as $$
+declare
+  v_id    uuid;
+  v_token text;
+begin
+  if auth.uid() is null then
+    raise exception 'Inte inloggad';
+  end if;
+
+  insert into public.cases (
+    reporter_type, employee_id,
+    subject, category, department, department_detail,
+    who_involved, where_happened, when_happened, other_actions,
+    reporter_name, reporter_phone, status
+  ) values (
+    p_reporter_type, auth.uid(),
+    p_subject, p_category, p_department, p_department_detail,
+    p_who_involved, p_where_happened, p_when_happened, p_other_actions,
+    case when p_reporter_type = 'open' then p_reporter_name  else null end,
+    case when p_reporter_type = 'open' then p_reporter_phone else null end,
+    'open'
+  )
+  returning id, anonymous_token into v_id, v_token;
+
+  insert into public.messages (case_id, from_role, text)
+  values (v_id, 'employee', p_message);
+
+  return query select v_id, v_token;
+end;
+$$;
+
+grant execute on function public.create_case to authenticated;

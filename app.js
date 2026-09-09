@@ -483,29 +483,25 @@ async function handleCreateCase() {
     return;
   }
 
-  // typ 2 & 3 — kräver inloggning
-  const insertPayload = {
-    reporter_type: reportType,
-    employee_id: me.id,
-    subject, category, department: dept, department_detail: deptDetail,
-    who_involved: who || null, where_happened: where || null,
-    when_happened: when || null, other_actions: actions || null,
-    status: 'open'
-  };
-  if (reportType === 'open') {
-    insertPayload.reporter_name  = me.name;
-    insertPayload.reporter_phone = me.phone || null;
-  }
-
-  const { data: caseRow, error: caseErr } = await sb.from('cases').insert(insertPayload).select().single();
-  if (caseErr) { setBusy('btn-create-case', false); return err('nc-err', caseErr.message); }
-
-  const { error: msgErr } = await sb.from('messages').insert({ case_id: caseRow.id, from_role: 'employee', text: message });
+  // typ 2 & 3 — kräver inloggning. Ärendet och första meddelandet skapas
+  // i EN transaktion, annars kunde ett tappat andra anrop lämna ett tomt
+  // ärende och anmälarens text vara borta.
+  const { data, error } = await sb.rpc('create_case', {
+    p_reporter_type: reportType,
+    p_subject: subject, p_category: category,
+    p_department: dept, p_department_detail: deptDetail,
+    p_who_involved: who || null, p_where_happened: where || null,
+    p_when_happened: when || null, p_other_actions: actions || null,
+    p_message: message,
+    p_reporter_name:  reportType === 'open' ? me.name : null,
+    p_reporter_phone: reportType === 'open' ? (me.phone || null) : null
+  });
   setBusy('btn-create-case', false);
-  if (msgErr) return err('nc-err', msgErr.message);
+  if (error || !data || !data[0]) return err('nc-err', (error && error.message) || t('err.generic'));
 
-  if (pendingFiles.length) await uploadPendingFiles(caseRow.id);
-  sb.functions.invoke('notify', { body: { type: 'new_case', case_id: caseRow.id } });
+  const newCaseId = data[0].case_id;
+  if (pendingFiles.length) await uploadPendingFiles(newCaseId);
+  sb.functions.invoke('notify', { body: { type: 'new_case', case_id: newCaseId } });
 
   resetReportForm();
   await showEmpDash();
