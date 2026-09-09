@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>JENSEN Whistleblower</title>
-  <link rel="stylesheet" href="style.css?v=20260909c">
+  <link rel="stylesheet" href="style.css?v=20260909d">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.46.0/dist/tabler-icons.min.css">
 </head>
 <body>
@@ -81,7 +81,7 @@
         <div class="landing-panel kontakter-panel">
             <button class="btn-back" onclick="showLanding()" data-i18n="back.landing">← Tillbaka</button>
             <h1><em data-i18n="contact.titleEm">Prata</em> <span data-i18n="contact.titleRest">med någon direkt</span></h1>
-            <p class="lead" data-i18n="contact.lead">Föredrar du att prata direkt med en person istället för att skicka in en anmälan via formuläret? Här är kontaktuppgifterna till HR-chef och kvalitetschef.</p>
+            <p class="lead" data-i18n="contact.lead">Föredrar du att prata direkt med en person istället för att skicka in en rapport via formuläret? Här är kontaktuppgifterna till HR-chef och kvalitetschef.</p>
 
             <div class="contact-grid">
                 <div class="contact-card">
@@ -187,10 +187,15 @@
         </div>
         <div class="type-card" onclick="selectReportType('open')">
           <div class="type-icon"><i class="ti ti-user-check"></i></div>
-          <h3 data-i18n="reportType.t3title">Öppen anmälare</h3>
+          <h3 data-i18n="reportType.t3title">Öppen rapportering</h3>
           <p data-i18n="reportType.t3desc">Du anger namn, e-post och ev. telefonnummer. HR ser vem du är, vilket kan underlätta utredningen.</p>
         </div>
       </div>
+
+      <p class="form-link">
+        <span data-i18n="register.haveAccount">Har du redan ett konto?</span>
+        <a href="#" onclick="showEmpLogin();return false;" data-i18n="register.loginHere">Logga in här</a>
+      </p>
     </div>
   </div>
 
@@ -231,14 +236,18 @@
 
         <div class="error-msg" id="reg-err"></div>
         <button id="btn-send-code" class="btn btn-gold btn-full" onclick="handleSendCode()" data-i18n="register.submit">Skapa konto →</button>
-        <p class="form-link" data-i18n="register.haveAccount">Har du redan ett konto? <a href="#" onclick="showEmpLogin();return false;" data-i18n="register.loginHere">Logga in här</a></p>
+        <p class="form-link">
+          <span data-i18n="register.haveAccount">Har du redan ett konto?</span>
+          <a href="#" onclick="showEmpLogin();return false;" data-i18n="register.loginHere">Logga in här</a>
+        </p>
       </div>
 
       <div id="reg-step2" style="display:none;">
         <div style="text-align:center;font-size:48px;color:var(--navy);margin-bottom:16px;"><i class="ti ti-mail"></i></div>
         <h1 data-i18n="register.checkInbox">Kontrollera din inkorg!</h1>
-        <p class="form-subtitle" data-i18n="register.checkInboxSub">
-          Vi har skickat ett verifieringsmail till <strong id="reg-sent-to"></strong>. Klicka på länken i mailet för att aktivera ditt konto, och logga sedan in här.
+        <p class="form-subtitle">
+          <span data-i18n="register.checkInboxPre">Vi har skickat ett verifieringsmail till</span>
+          <strong id="reg-sent-to"></strong><span data-i18n="register.checkInboxPost">. Klicka på länken i mailet för att aktivera ditt konto, och logga sedan in här.</span>
         </p>
         <button class="btn btn-gold btn-full" onclick="showEmpLogin()" data-i18n="register.goToLogin">Gå till inloggning</button>
       </div>
@@ -253,13 +262,13 @@
     <div class="form-wrap form-wrap-wide">
       <button class="btn-back" onclick="showLanding()" data-i18n="back.landing">← Tillbaka</button>
       <h1 data-i18n="followup.title">Följ upp ditt ärende</h1>
-      <p class="form-subtitle" data-i18n="followup.subtitle">Hur skickade du in din anmälan?</p>
+      <p class="form-subtitle" data-i18n="followup.subtitle">Hur skickade du in din rapport?</p>
 
       <div class="type-cards type-cards-2">
         <div class="type-card" onclick="show('view-anon-code-entry')">
           <div class="type-icon"><i class="ti ti-key"></i></div>
           <h3 data-i18n="followup.codeTitle">Med en kod</h3>
-          <p data-i18n="followup.codeDesc">Jag anmälde helt anonymt och har en åtkomstkod.</p>
+          <p data-i18n="followup.codeDesc">Jag rapporterade helt anonymt och har en åtkomstkod.</p>
         </div>
         <div class="type-card" onclick="showEmpLogin()">
           <div class="type-icon"><i class="ti ti-login"></i></div>
@@ -275,13 +284,17 @@
     <div class="form-wrap">
       <button class="btn-back" onclick="show('view-followup-choice')" data-i18n="back.followup">← Tillbaka</button>
       <h1 data-i18n="codeEntry.title">Ange din åtkodskod</h1>
-      <p class="form-subtitle" data-i18n="codeEntry.subtitle">Koden du fick när du skickade in din anonyma anmälan.</p>
+      <p class="form-subtitle" data-i18n="codeEntry.subtitle">Koden du fick när du skickade in din anonyma rapport.</p>
       <div class="form-group">
         <label for="access-code-input" data-i18n="codeEntry.label">Åtkomstkod</label>
         <input type="text" id="access-code-input" data-i18n-placeholder="codeEntry.placeholder" placeholder="t.ex. Xk9aB3mP...">
       </div>
       <div class="error-msg" id="code-entry-err"></div>
       <button id="btn-code-entry" class="btn btn-gold btn-full" onclick="handleCodeEntry()" data-i18n="codeEntry.submit">Visa mitt ärende</button>
+      <p class="form-link">
+        <span data-i18n="codeEntry.lostCode">Har du tappat bort koden? Den kan tyvärr inte återskapas — vi sparar inga uppgifter som kan koppla den till dig.</span>
+        <a href="#" onclick="startNewReport();return false;" data-i18n="codeEntry.newReport">Skicka en ny rapport</a>
+      </p>
     </div>
   </div>
 
@@ -293,7 +306,7 @@
     <div class="form-wrap">
       <button class="btn-back" onclick="showLanding()" data-i18n="back.landing">← Tillbaka</button>
       <h1 data-i18n="login.title">Logga in</h1>
-      <p class="form-subtitle" data-i18n="login.subtitle">Logga in för att skicka en ny anmälan eller följa upp befintliga ärenden.</p>
+      <p class="form-subtitle" data-i18n="login.subtitle">Logga in för att skicka en ny rapport eller följa upp befintliga ärenden.</p>
 
       <div class="form-group">
         <label for="emp-email" data-i18n="login.email">E-postadress</label>
@@ -332,6 +345,9 @@
       </div>
       <div class="error-msg" id="reset-err"></div>
       <button id="btn-set-pw" class="btn btn-gold btn-full" onclick="handleSetNewPassword()" data-i18n="reset.submit">Spara nytt lösenord</button>
+      <p class="form-link">
+        <a href="#" onclick="showLanding();return false;" data-i18n="reset.cancel">Avbryt och gå till startsidan</a>
+      </p>
     </div>
   </div>
 
@@ -357,9 +373,13 @@
       <div class="error-msg" id="admin-err"></div>
       <button id="btn-admin-login" class="btn btn-gold btn-full" onclick="handleAdminLogin()" data-i18n="adminLogin.submit">Logga in</button>
 
-      <div class="admin-hint" data-i18n="adminLogin.hint">
-        <strong>Kontakta Dennis om du saknar inloggningsuppgifter.</strong>
+      <div class="admin-hint">
+        <strong data-i18n="adminLogin.hint">Kontakta Dennis om du saknar inloggningsuppgifter.</strong>
       </div>
+      <p class="form-link">
+        <span data-i18n="adminLogin.notAdmin">Är du inte handläggare?</span>
+        <a href="#" onclick="startNewReport();return false;" data-i18n="adminLogin.goReport">Skicka en rapport här</a>
+      </p>
     </div>
   </div>
 
@@ -406,7 +426,7 @@
         <div>
           <h1 data-i18n="dash.title">Mina ärenden</h1>
         </div>
-        <button class="btn btn-gold" onclick="newCaseForExistingUser()" data-i18n="dash.newCase">+ Ny anmälan</button>
+        <button class="btn btn-gold" onclick="newCaseForExistingUser()" data-i18n="dash.newCase">+ Ny rapport</button>
       </div>
 
       <div class="sub-tabs">
@@ -426,9 +446,9 @@
   <div class="view" id="view-new-case">
     <div class="form-wrap form-wrap-wide">
       <button class="btn-back" onclick="handleReportFormBack()" data-i18n="back.generic">← Tillbaka</button>
-      <h1 data-i18n="reportForm.title">Skicka anmälan</h1>
+      <h1 data-i18n="reportForm.title">Skicka rapport</h1>
       <p class="form-subtitle" id="reportform-subtitle" data-i18n="reportForm.subtitleAnon">
-        Din anmälan skickas anonymt. Mottagaren ser enbart ditt anonyma ärendenummer.
+        Din rapport skickas anonymt. Mottagaren ser enbart ditt anonyma ärendenummer.
       </p>
 
       <form id="new-case-form" onsubmit="return false;">
@@ -485,7 +505,7 @@
         </div>
 
         <div class="form-group">
-          <label for="case-msg" data-i18n="reportForm.message">Din anmälan</label>
+          <label for="case-msg" data-i18n="reportForm.message">Din rapport</label>
           <textarea id="case-msg" data-i18n-placeholder="reportForm.messagePh" placeholder="Beskriv situationen i detalj."></textarea>
         </div>
 
@@ -515,7 +535,7 @@
         </div>
 
         <div class="error-msg" id="nc-err"></div>
-        <button id="btn-create-case" class="btn btn-gold btn-full" onclick="handleCreateCase()" data-i18n="reportForm.submit">Skicka anmälan</button>
+        <button id="btn-create-case" class="btn btn-gold btn-full" onclick="handleCreateCase()" data-i18n="reportForm.submit">Skicka rapport</button>
       </form>
     </div>
   </div>
@@ -582,7 +602,7 @@
       </div>
 
       <div class="notice notice-green" data-i18n="adminDash.notice">
-        🔒 Anonyma anmälare visas enbart med ärendenummer. Öppna anmälare visas med namn och kontaktuppgifter.
+        🔒 Anonyma visselblåsare visas enbart med ärendenummer. Öppna visselblåsare visas med namn och kontaktuppgifter.
       </div>
 
       <div class="sub-tabs">
@@ -621,7 +641,7 @@
       </div>
 
       <div class="notice notice-amber" style="margin:0 0 12px;" id="ac-anon-notice" data-i18n="adminCase.anonNotice">
-        🔒 Denna anmälare är anonym. Deras verkliga identitet är inte tillgänglig för dig och kan inte spåras.
+        🔒 Denna visselblåsare är anonym. Deras verkliga identitet är inte tillgänglig för dig och kan inte spåras.
       </div>
 
       <div id="ac-attachments" class="attachments-list"></div>
@@ -641,7 +661,7 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.js"></script>
-<script src="i18n.js?v=20260909c"></script>
-<script src="app.js?v=20260909c"></script>
+<script src="i18n.js?v=20260909d"></script>
+<script src="app.js?v=20260909d"></script>
 </body>
 </html>
