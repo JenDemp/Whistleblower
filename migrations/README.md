@@ -11,6 +11,7 @@ Vill du veta hur databasen ser ut *nu*, läs [`../schema.sql`](../schema.sql).
 |---|---|
 | `2026-09_steg-0-7.sql` | Allt fram till 2026-09-09, i den ordning det kördes: v2-schemat (tre anmälartyper) plus sju tilläggssteg — delad admin-inkorg, super-admin, ämnesrad, avsändarnamn i chatten, atomiskt ärendeskapande. |
 | `2026-09_anteckningar.sql` | `case_notes` — interna anteckningar per ärende, läs- och skrivbara av alla admins men aldrig av visselblåsaren. |
+| `2026-09_bilagor-anonym.sql` | Fix: bilagor gick aldrig upp för helt anonyma anmälare. RLS-policyn frågade `public.cases` direkt, och den tabellens egen RLS gav rollen `anon` noll rader. Går nu via `can_attach_to_anonymous_case()`. |
 
 ## Hur du gör en ny ändring
 

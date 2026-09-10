@@ -221,10 +221,14 @@ create policy "Attachments: admin" on public.attachments
 
 -- Typ 1 saknar session och kan därför inte matchas mot employee_id.
 -- case_id är en slumpad UUID som bara den som skapade ärendet känner till.
+--
+-- Villkoret MÅSTE gå via can_attach_to_anonymous_case() nedan. En rak
+-- subfråga mot public.cases ser noll rader här, eftersom cases har RLS
+-- och rollen "anon" saknar SELECT-policy — och då blir villkoret alltid
+-- falskt. Det var precis så bilagorna gick sönder för typ 1.
 create policy "Attachments: anonym metadata" on public.attachments
   for insert with check (
-    exists (select 1 from public.cases c
-            where c.id = attachments.case_id and c.reporter_type = 'anonymous_code')
+    public.can_attach_to_anonymous_case(attachments.case_id::text)
   );
 
 
@@ -257,6 +261,37 @@ create trigger on_auth_user_created
 -- pgcrypto ligger i schemat "extensions" i Supabase. Funktioner med
 -- låst search_path måste därför lista det, annars hittas inte crypt().
 -- ================================================================
+
+-- ── Får den här anroparen bifoga filer till ett typ 1-ärende? ────
+-- SECURITY DEFINER för att den ska få läsa public.cases förbi RLS.
+-- Utan det ser rollen "anon" noll rader och alla bilagor avvisas.
+-- Funktionen svarar bara ja/nej och läcker inget innehåll: den bekräftar
+-- att ett case_id finns, och det UUID:t känner bara den till som nyss
+-- skapade ärendet.
+--
+-- Tidsfönstret finns för att bilagor laddas upp sekunder efter att
+-- ärendet skapats. Utan det vore ett läckt case_id en permanent
+-- skrivrättighet in i vår Storage-bucket.
+create or replace function public.can_attach_to_anonymous_case(p_case_id text)
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  -- id::text, inte cast av parametern: en mapp som inte är ett giltigt
+  -- UUID ska ge false, inte kasta ett fel mitt i policyutvärderingen.
+  select exists (
+    select 1
+    from public.cases
+    where id::text = p_case_id
+      and reporter_type = 'anonymous_code'
+      and created_at > now() - interval '1 hour'
+  );
+$$;
+
+grant execute on function public.can_attach_to_anonymous_case to anon, authenticated;
+
 
 -- ── Skapa helt anonymt ärende (typ 1) ────────────────────────────
 -- SECURITY DEFINER: anroparen har ingen session och kan inte skriva
@@ -469,10 +504,8 @@ create policy "Attachments storage: admin läser"
 
 create policy "Attachments storage: anonym uppladdning"
   on storage.objects for insert with check (
-    bucket_id = 'case-attachments' and
-    exists (select 1 from public.cases c
-            where c.id::text = (storage.foldername(name))[1]
-              and c.reporter_type = 'anonymous_code')
+    bucket_id = 'case-attachments'
+    and public.can_attach_to_anonymous_case((storage.foldername(name))[1])
   );
 
 

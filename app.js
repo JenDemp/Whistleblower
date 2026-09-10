@@ -487,10 +487,21 @@ function renderFilesList() {
   else clearErrors();
 }
 
+// Supabase Storage avvisar nycklar med icke-ASCII, # eller % med
+// InvalidKey. Ett svenskt filnamn som "Bevis åäö.pdf" gick allttså aldrig
+// upp. Det riktiga namnet sparas oförändrat i attachments.file_name,
+// så handläggaren ser ändå vad filen heter.
+function storageSafeName(name) {
+  const withoutAccents = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const safe = withoutAccents.replace(/[^A-Za-z0-9._-]/g, '_').replace(/_{2,}/g, '_');
+  // Behåll slutet av namnet om det är långt — där sitter filändelsen.
+  return (safe.length > 80 ? safe.slice(-80) : safe) || 'bilaga';
+}
+
 async function uploadPendingFiles(caseId) {
   const failures = [];
   for (const file of pendingFiles) {
-    const path = `${caseId}/${Date.now()}_${file.name}`;
+    const path = `${caseId}/${Date.now()}_${storageSafeName(file.name)}`;
     const { error: upErr } = await sb.storage.from('case-attachments').upload(path, file);
     if (upErr) {
       console.error('Bilageuppladdning misslyckades:', file.name, upErr);
@@ -526,6 +537,11 @@ async function handleCreateCase() {
   if (!category)       return err('nc-err', t('err.chooseCategory'));
   if (!dept)            return err('nc-err', t('err.chooseDept'));
   if (!message || message.length < 10) return err('nc-err', t('err.messageShort'));
+
+  // Utan den här spärren skapades ärendet först och bilagorna föll bort
+  // efteråt, med en alert som kom när rapporten redan var skickad.
+  const totalBytes = pendingFiles.reduce((sum, f) => sum + f.size, 0);
+  if (totalBytes > MAX_TOTAL_BYTES) return err('nc-err', t('err.filesTooLarge'));
 
   let deptDetail = null;
   if (dept === 'staber') deptDetail = val('dept-detail-sel');
