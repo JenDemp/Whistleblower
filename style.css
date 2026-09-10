@@ -500,6 +500,18 @@ a:hover { text-decoration: underline; }
 .notes-add textarea:focus { outline: none; border-color: var(--gold-dark); box-shadow: 0 0 0 3px rgba(201,163,95,.15); }
 .btn-note-save { width: 100%; }
 
+/* ── BILAGOR HOS ANONYM ANMÄLARE ──────── */
+/* Chips utan länk: de bekräftar att filen finns i ärendet, de öppnar
+   den inte. Därför ingen pekare och ingen hovereffekt. */
+.anon-attachments { margin-bottom: 14px; }
+.anon-attachments-head {
+  font-size: 11px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 7px;
+}
+.attachment-chip-static { cursor: default; color: var(--text); }
+.attachment-chip-static i { font-size: 15px; color: var(--muted); }
+.attachment-size { color: var(--muted); font-weight: 500; }
+
 /* ── ADMIN HEADER ────────────────────────── */
 .admin-profile { display: flex; align-items: center; gap: 10px; }
 .admin-profile img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--gold); }

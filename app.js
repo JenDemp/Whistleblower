@@ -335,12 +335,35 @@ async function renderAnonCase() {
   const sp = document.getElementById('anon-status');
   sp.textContent = t('status.' + c.status);
   sp.className = `status-pill s-${c.status}`;
+  renderAnonAttachments(c.attachments || []);
   await renderMsgs('anon-msgs', c.messages || [], 'employee', {
     subject: c.subject, category: c.category, department: c.department, departmentDetail: c.department_detail,
     whoInvolved: c.who_involved, whereHappened: c.where_happened,
     whenHappened: c.when_happened, otherActions: c.other_actions
   });
   document.getElementById('anon-reply-input').value = '';
+}
+
+// Visar ATT bilagorna kom fram, inte filerna själva. get_case_by_code
+// returnerar medvetet inte file_path: en nedladdningslänk hade krävt en
+// ny läsväg in i Storage-bucketen, och anmälaren har redan filerna på
+// sin egen dator. Det de behöver är bekräftelsen.
+function renderAnonAttachments(attachments) {
+  const wrap = document.getElementById('anon-attachments-wrap');
+  const list = document.getElementById('anon-attachments-list');
+  list.innerHTML = '';
+
+  if (!attachments.length) { wrap.style.display = 'none'; return; }
+
+  attachments.forEach(a => {
+    const chip = el('div', 'attachment-chip attachment-chip-static');
+    const mb = (a.file_size / 1024 / 1024).toFixed(2);
+    chip.innerHTML = `<i class="ti ti-paperclip" aria-hidden="true"></i>
+      <span>${esc(a.file_name)}</span>
+      <span class="attachment-size">${mb} MB</span>`;
+    list.appendChild(chip);
+  });
+  wrap.style.display = 'block';
 }
 
 async function handleAnonReply() {

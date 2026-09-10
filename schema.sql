@@ -359,7 +359,8 @@ returns table(
   other_actions      text,
   status             text,
   created_at         timestamptz,
-  messages           jsonb
+  messages           jsonb,
+  attachments        jsonb
 )
 language plpgsql
 security definer
@@ -391,7 +392,15 @@ begin
                 'from_role', m.from_role, 'text', m.text, 'created_at', m.created_at,
                 'sender_id', m.sender_id
               ) order by m.created_at), '[]'::jsonb)
-       from public.messages m where m.case_id = v_case.id);
+       from public.messages m where m.case_id = v_case.id),
+      -- Bara namn, storlek och tidpunkt. file_path utelämnas medvetet:
+      -- en nedladdningslänk hade krävt en ny läsväg in i Storage, och
+      -- anmälaren har redan filerna. Det de behöver är bekräftelsen att
+      -- bilagan finns i ärendet.
+      (select coalesce(jsonb_agg(jsonb_build_object(
+                'file_name', a.file_name, 'file_size', a.file_size, 'created_at', a.created_at
+              ) order by a.created_at), '[]'::jsonb)
+       from public.attachments a where a.case_id = v_case.id);
 end;
 $$;
 

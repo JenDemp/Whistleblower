@@ -135,6 +135,7 @@ const translations = {
     'adminLogin.goReport': 'Skicka en rapport här',
 
     'anonCase.case': 'Ärende:',
+    'anonCase.attachments': 'Bifogade filer',
     'anonCase.to': 'Till:',
     'anonCase.codeWarning': '🔑 Spara din åtkomstkod på en säker plats. Det är den enda vägen tillbaka till detta ärende.',
     'anonCase.replyPh': 'Skriv ditt svar…',
@@ -406,6 +407,7 @@ const translations = {
     'adminLogin.goReport': 'Submit a report here',
 
     'anonCase.case': 'Case:',
+    'anonCase.attachments': 'Attached files',
     'anonCase.to': 'To:',
     'anonCase.codeWarning': '🔑 Keep your access code somewhere safe. It is the only way back into this case.',
     'anonCase.replyPh': 'Write your reply…',
