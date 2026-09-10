@@ -6,19 +6,19 @@ const translations = {
     'header.adminLogin': 'HR & Admin',
 
     'landing.title': 'Välkommen till vår rapporteringskanal',
-    'landing.p1': 'Vår interna rapporteringskanal, så kallad visselblåsarfunktion, kan du använda för att rapportera misstankar om oegentligheter i vår organisation.',
-    'landing.p2': 'Visselblåsarfunktionen syftar till att förbättra möjligheten att avslöja olika former av missförhållanden och till att ge ett utökat skydd för den som rapporterar. Vi garanterar att ditt ärende samt din identitet behandlas konfidentiellt och du har också ett skydd mot repressalier.',
-    'landing.whatTitle': 'Vad kan du rapportera om?',
-    'landing.whatP1': 'När du lämnar in en rapport bör du ha goda anledningar att tro att den information du har kännedom om är sann vid tidpunkten för rapporteringen.',
-    'landing.whatP2': 'Syftet med rapportkanalen är att förebygga och upptäcka bedrägeri och korruption, olaglig verksamhet samt bristande efterlevnad av regler inom en rad områden. Det kan också vara illegala, oetiska eller skadliga aktiviteter som kan påverka andra negativt, till exempel:',
-    'landing.whatLi1': 'Ekonomisk brottslighet och bedrägeri',
-    'landing.whatLi2': 'Korruption och mutor',
-    'landing.whatLi3': 'Miljöbrott eller säkerhetsrisker rörande liv och hälsa',
-    'landing.whatLi4': 'Medvetna lagöverträdelser',
-    'landing.whatP3': 'Missförhållandet behöver inte vara aktuellt eller pågående, det kan även gälla rapportering av avslutade missförhållanden.',
-    'landing.whatP4': 'Syftet med tjänsten är inte att fånga upp missnöje med arbetsförhållanden, organisation eller chefskap eller konflikter på arbetsplatsen. Rapportering av missförhållanden som uteslutande påverkar visselblåsaren eller dennes arbetssituation bedöms som regel inte vara ett visselblåsarärende.',
-    'landing.anonTitle': 'Anonym eller konfidentiell rapportering',
-    'landing.anonP1': 'Du har möjlighet att välja mellan anonym rapportering eller att ange ditt namn och dina kontaktuppgifter när du skickar in en rapport. Läs mer om de tre alternativen när du klickar på "Skapa ny rapport".',
+    'landing.p1': 'Vår interna visselblåsartjänst finns till för att du tryggt och säkert ska kunna rapportera misstankar om allvarliga missförhållanden inom vår verksamhet. Tjänsten kan användas av alla som har eller har haft en arbetsrelaterad relation till oss – inklusive anställda, arbetssökande, konsulter, leverantörer och styrelseledamöter.',
+    'landing.p2': 'Syftet är att förebygga, upptäcka och åtgärda skadliga eller olagliga beteenden. Vi garanterar att din rapport hanteras med strikt konfidentialitet och du omfattas av ett lagstadgat skydd mot alla former av repressalier.',
+    'landing.whatTitle': 'Vad kan du rapportera?',
+    'landing.whatP1': 'Du kan rapportera missförhållanden som det finns ett allmänintresse av att de kommer fram, eller händelser som bryter mot gällande lagar och regler. Det kan gälla både pågående och avslutade händelser. Du behöver inte ha slutgiltiga bevis, men du ska vid tillfället för rapporteringen ha en rimlig anledning att anta att informationen är sann.',
+    'landing.whatP2': 'Exempel på vad du kan rapportera:',
+    'landing.whatLi1': 'Ekonomisk brottslighet, bedrägerier, korruption och mutor',
+    'landing.whatLi2': 'Miljöbrott eller allvarliga säkerhetsrisker för liv och hälsa',
+    'landing.whatLi3': 'Systematiska och medvetna lagöverträdelser',
+    'landing.whatLi4': 'Andra allvarliga missförhållanden som påverkar samhället eller organisationen negativt',
+    'landing.notCoveredTitle': 'Vad omfattas inte?',
+    'landing.notCoveredP1': 'Tjänsten är inte avsedd för allmänt missnöje med arbetsmiljö, lön, chefskap eller personliga konflikter på arbetsplatsen. Dessa frågor hanteras i första hand via närmaste chef, HR eller skyddsombud.',
+    'landing.anonTitle': 'Anonymitet och sekretess',
+    'landing.anonP1': 'När du lämnar en rapport kan du välja att vara helt anonym eller att uppge dina kontaktuppgifter. Oavsett vad du väljer behandlas ditt ärende under högsta sekretess. Du får mer information om dina val när du klickar dig vidare till "Skapa ny rapport".',
     'landing.newReport': 'Skapa ny rapport →',
     'landing.followUp': 'Följ upp ärende',
     'landing.integrity': 'Integritetsinformation →',
@@ -210,6 +210,18 @@ const translations = {
     'adminCase.status': 'Status:',
     'adminCase.anonNotice': '🔒 Denna visselblåsare är anonym. Deras verkliga identitet är inte tillgänglig för dig och kan inte spåras.',
 
+    'notes.title': 'Anteckningar',
+    'notes.panelTitle': 'Interna anteckningar',
+    'notes.tooltip': 'Här kan du lägga till anteckningar',
+    'notes.onlyAdmins': 'Syns bara för HR och administratörer. Visselblåsaren kan aldrig läsa dem.',
+    'notes.placeholder': 'Skriv en anteckning…',
+    'notes.save': 'Spara anteckning',
+    'notes.empty': 'Inga anteckningar ännu. Skriv den första nedan.',
+    'notes.close': 'Stäng anteckningar',
+    'notes.you': 'Du',
+    'notes.delete': 'Ta bort anteckning',
+    'notes.confirmDelete': 'Ta bort den här anteckningen? Det går inte att ångra.',
+
     'status.open': 'Öppen',
     'status.investigating': 'Under utredning',
     'status.resolved': 'Avslutad',
@@ -255,6 +267,9 @@ const translations = {
     'err.loadFailed': 'Kunde inte hämta uppgifterna. Kontrollera din uppkoppling och ladda om sidan.',
     'err.caseLoadFailed': 'Kunde inte öppna ärendet. Gå tillbaka och försök igen.',
     'err.statusUpdateFailed': 'Statusen kunde inte sparas. Försök igen.',
+    'err.noteEmpty': 'Skriv en anteckning innan du sparar.',
+    'err.noteFailed': 'Anteckningen kunde inte sparas. Försök igen.',
+    'err.notesLoadFailed': 'Kunde inte hämta anteckningarna.',
   },
 
   en: {
@@ -262,19 +277,19 @@ const translations = {
     'header.adminLogin': 'HR & Admin',
 
     'landing.title': 'Welcome to our reporting channel',
-    'landing.p1': 'You can use our internal reporting channel, known as the whistleblower function, to report suspected irregularities within our organization.',
-    'landing.p2': 'The whistleblower function is designed to improve the ability to uncover various forms of misconduct and to provide enhanced protection for the person reporting. We guarantee that your case and your identity are treated confidentially, and you are also protected against retaliation.',
+    'landing.p1': 'Our internal whistleblowing service exists so that you can safely and securely report suspicions of serious misconduct within our organization. The service is open to everyone who has, or has had, a work-related relationship with us — including employees, job applicants, consultants, suppliers and board members.',
+    'landing.p2': 'The purpose is to prevent, detect and address harmful or unlawful behaviour. We guarantee that your report is handled in strict confidence, and you are covered by statutory protection against all forms of retaliation.',
     'landing.whatTitle': 'What can you report?',
-    'landing.whatP1': 'When submitting a report, you should have good reason to believe that the information you have is true at the time of reporting.',
-    'landing.whatP2': 'The purpose of the reporting channel is to prevent and detect fraud and corruption, illegal activity, and non-compliance with rules in a range of areas. It may also cover illegal, unethical, or harmful activities that could negatively affect others, for example:',
-    'landing.whatLi1': 'Financial crime and fraud',
-    'landing.whatLi2': 'Corruption and bribery',
-    'landing.whatLi3': 'Environmental crimes or safety risks concerning life and health',
-    'landing.whatLi4': 'Deliberate violations of the law',
-    'landing.whatP3': 'The misconduct does not need to be ongoing or current — it may also concern reporting of misconduct that has already ended.',
-    'landing.whatP4': 'The purpose of this service is not to capture dissatisfaction with working conditions, organization, or management, or workplace conflicts. Reporting of misconduct that solely affects the whistleblower or their own work situation is generally not considered a whistleblowing case.',
-    'landing.anonTitle': 'Anonymous or confidential reporting',
-    'landing.anonP1': 'You can choose between reporting anonymously or providing your name and contact details when submitting a report. Read more about the three options when you click "Create new report".',
+    'landing.whatP1': 'You can report misconduct that is in the public interest to bring to light, or events that breach applicable laws and regulations. This applies to both ongoing and concluded events. You do not need conclusive evidence, but at the time of reporting you must have reasonable grounds to believe the information is true.',
+    'landing.whatP2': 'Examples of what you can report:',
+    'landing.whatLi1': 'Financial crime, fraud, corruption and bribery',
+    'landing.whatLi2': 'Environmental crime or serious risks to life and health',
+    'landing.whatLi3': 'Systematic and deliberate violations of the law',
+    'landing.whatLi4': 'Other serious misconduct that harms society or the organization',
+    'landing.notCoveredTitle': 'What is not covered?',
+    'landing.notCoveredP1': 'The service is not intended for general dissatisfaction with the working environment, pay, management or personal conflicts at work. Those matters are handled primarily through your immediate manager, HR or a health and safety representative.',
+    'landing.anonTitle': 'Anonymity and confidentiality',
+    'landing.anonP1': 'When you submit a report you can choose to remain completely anonymous or to provide your contact details. Whichever you choose, your case is handled in the strictest confidence. You will get more information about your options when you continue to "Create new report".',
     'landing.newReport': 'Create new report →',
     'landing.followUp': 'Follow up on a case',
     'landing.integrity': 'Privacy information →',
@@ -466,6 +481,18 @@ const translations = {
     'adminCase.status': 'Status:',
     'adminCase.anonNotice': '🔒 This reporter is anonymous. Their real identity is not available to you and cannot be traced.',
 
+    'notes.title': 'Notes',
+    'notes.panelTitle': 'Internal notes',
+    'notes.tooltip': 'Here you can add notes',
+    'notes.onlyAdmins': 'Visible only to HR and administrators. The reporter can never read them.',
+    'notes.placeholder': 'Write a note…',
+    'notes.save': 'Save note',
+    'notes.empty': 'No notes yet. Write the first one below.',
+    'notes.close': 'Close notes',
+    'notes.you': 'You',
+    'notes.delete': 'Delete note',
+    'notes.confirmDelete': 'Delete this note? This cannot be undone.',
+
     'status.open': 'Open',
     'status.investigating': 'Under investigation',
     'status.resolved': 'Resolved',
@@ -511,6 +538,9 @@ const translations = {
     'err.loadFailed': 'Could not load the data. Check your connection and reload the page.',
     'err.caseLoadFailed': 'Could not open the case. Go back and try again.',
     'err.statusUpdateFailed': 'The status could not be saved. Please try again.',
+    'err.noteEmpty': 'Write a note before saving.',
+    'err.noteFailed': 'The note could not be saved. Please try again.',
+    'err.notesLoadFailed': 'Could not load the notes.',
   }
 };
 
@@ -531,6 +561,10 @@ function applyLang() {
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
     const key = el.dataset.i18nPlaceholder;
     if (translations[currentLang][key] !== undefined) el.placeholder = translations[currentLang][key];
+  });
+  document.querySelectorAll('[data-i18n-aria]').forEach(el => {
+    const key = el.dataset.i18nAria;
+    if (translations[currentLang][key] !== undefined) el.setAttribute('aria-label', translations[currentLang][key]);
   });
   document.querySelectorAll('.lang-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.lang === currentLang);

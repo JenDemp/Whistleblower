@@ -306,7 +306,9 @@ grant execute on function public.get_case_by_code to anon, authenticated;
 
 
 -- ── 10. RPC: svara anonymt via kod (typ 1 – uppföljning) ─────────
--- TODO(human): implementera denna funktion.
+-- OBS: stubben nedan blev kvar i den här filen. Den riktiga
+-- implementationen skrevs direkt i SQL Editor och finns i ../schema.sql.
+-- Detta är driften som beskrivs i README. Rör inte filen — den är historik.
 -- Ska följa samma mönster som get_case_by_code ovan: slå upp ärendet
 -- via crypt(p_code, access_code_hash), och om det INTE hittas ska
 -- funktionen returnera false (inte ett fel – vi vill inte avslöja
@@ -320,7 +322,7 @@ security definer
 set search_path = public
 as $$
 begin
-  -- TODO(human): implementera
+  -- stubbe – se ../schema.sql för den funktion som faktiskt körs
   return false;
 end;
 $$;

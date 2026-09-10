@@ -10,6 +10,7 @@ Vill du veta hur databasen ser ut *nu*, läs [`../schema.sql`](../schema.sql).
 | Fil | Innehåll |
 |---|---|
 | `2026-09_steg-0-7.sql` | Allt fram till 2026-09-09, i den ordning det kördes: v2-schemat (tre anmälartyper) plus sju tilläggssteg — delad admin-inkorg, super-admin, ämnesrad, avsändarnamn i chatten, atomiskt ärendeskapande. |
+| `2026-09_anteckningar.sql` | `case_notes` — interna anteckningar per ärende, läs- och skrivbara av alla admins men aldrig av visselblåsaren. |
 
 ## Hur du gör en ny ändring
 

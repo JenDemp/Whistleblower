@@ -221,6 +221,9 @@ function showLanding(section) {
 function onLangChange() {
   if (meType === 'admin' && document.getElementById('view-admin-dash').style.display === 'block') showAdminDash();
   if (meType === 'employee' && document.getElementById('view-emp-dash').style.display === 'block') showEmpDash();
+  // Anteckningarna ritas av JS ("Du", tomtillstånd, datumformat) och blir
+  // därför kvar på gamla språket om vi inte ritar om dem.
+  if (document.getElementById('view-case-admin').style.display === 'block') renderNotes();
 }
 
 // ── REPORT TYPE SELECTION ───────────────────────────────────────
@@ -807,6 +810,10 @@ async function openCaseAdmin(caseId) {
   };
   await renderMsgs('admin-msgs', msgs || [], 'admin', activeCaseExtra);
   document.getElementById('admin-reply-input').value = '';
+
+  document.getElementById('ac-note-input').value = '';
+  applyNotesPanel();
+  await loadNotes(caseId);
 }
 
 async function handleAdminReply() {
@@ -841,6 +848,149 @@ async function handleStatusChange() {
     err('admin-reply-err', t('err.statusUpdateFailed'));
   }
 }
+
+// ── INTERNA ANTECKNINGAR (endast admin) ───────────────────────
+// Anteckningarna bor i en egen tabell, case_notes, som bara admins har
+// någon policy alls på. Visselblåsaren kan därför inte nå dem — varken
+// via tabellen eller via get_case_by_code() (typ 1).
+let notesOpen       = false;   // panelen är kvar öppen när man byter ärende
+let activeCaseNotes = [];
+
+function toggleNotes(force) {
+  notesOpen = (force === undefined) ? !notesOpen : !!force;
+  applyNotesPanel();
+  if (notesOpen) document.getElementById('ac-note-input').focus();
+}
+
+function applyNotesPanel() {
+  document.getElementById('view-case-admin').classList.toggle('notes-open', notesOpen);
+
+  const btn = document.getElementById('btn-notes-toggle');
+  btn.setAttribute('aria-expanded', String(notesOpen));
+  // Ikonen visar vad knappen gör härnäst: plus när panelen är stängd,
+  // minus när den är öppen och nästa klick fäller ihop den.
+  const icon = btn.querySelector('i');
+  icon.classList.toggle('ti-plus',  !notesOpen);
+  icon.classList.toggle('ti-minus',  notesOpen);
+}
+
+async function loadNotes(caseId) {
+  const { data, error } = await sb.from('case_notes')
+    .select('id, author_id, text, created_at')
+    .eq('case_id', caseId)
+    .order('created_at', { ascending: true });
+  if (error) {
+    console.error('Kunde inte hämta anteckningar:', error);
+    activeCaseNotes = [];
+    document.getElementById('ac-notes-list').innerHTML =
+      `<div class="notes-empty">${t('err.notesLoadFailed')}</div>`;
+    updateNotesCount();
+    return;
+  }
+  activeCaseNotes = data || [];
+  await renderNotes();
+}
+
+function updateNotesCount() {
+  const badge = document.getElementById('ac-notes-count');
+  badge.textContent = activeCaseNotes.length;
+  badge.classList.toggle('has-notes', activeCaseNotes.length > 0);
+}
+
+async function renderNotes() {
+  const list = document.getElementById('ac-notes-list');
+  updateNotesCount();
+
+  if (!activeCaseNotes.length) {
+    list.innerHTML = `<div class="notes-empty">${t('notes.empty')}</div>`;
+    return;
+  }
+
+  // En nytillagd kollega finns inte i den cachade kartan. Slå om en gång
+  // istället för att visa "Handläggare" i onödan.
+  let adminsMap = await getAdminsMap();
+  if (activeCaseNotes.some(n => !adminsMap[n.author_id])) {
+    adminsMapCache = null;
+    adminsMap = await getAdminsMap();
+  }
+
+  list.innerHTML = '';
+  activeCaseNotes.forEach(n => {
+    const isOwn = !!me && n.author_id === me.id;
+    const author = isOwn ? t('notes.you') : (adminsMap[n.author_id] || t('common.caseHandler'));
+
+    const card = el('div', 'note-card');
+    card.innerHTML = `
+      <div class="note-head">
+        <span class="note-author">${esc(author)}</span>
+        <span class="note-time">${fmt(n.created_at)}</span>
+      </div>
+      <div class="note-text">${esc(n.text)}</div>`;
+
+    decorateOwnNote(card, n, isOwn);
+    list.appendChild(card);
+  });
+  list.scrollTop = list.scrollHeight;
+}
+
+// Anropas för varje anteckning efter att kortet byggts. Egna anteckningar
+// får gärna skilja sig från kollegornas, och bara egna går att ta bort —
+// det är vad RLS-policyn "Notes: admin raderar egna" tillåter.
+//
+// card   – elementet <div class="note-card"> som redan innehåller
+//          författare, tidsstämpel och text
+// note   – { id, author_id, text, created_at }
+// isOwn  – true om inloggad handläggare skrev anteckningen
+function decorateOwnNote(card, note, isOwn) {
+  if (!isOwn) return;
+
+  card.classList.add('note-own');
+
+  // Papperskorgen ligger i .note-head efter tidsstämpeln, inte ovanpå
+  // texten — anteckningarna är korta och en knapp mitt i dem skulle
+  // knuffa runt raderna. Den tonas fram vid hover över kortet så att
+  // listan är lugn att läsa.
+  const btn = el('button', 'note-delete');
+  btn.type = 'button';
+  btn.setAttribute('aria-label', t('notes.delete'));
+  btn.innerHTML = '<i class="ti ti-trash" aria-hidden="true"></i>';
+  btn.addEventListener('click', () => handleDeleteNote(note.id));
+  card.querySelector('.note-head').appendChild(btn);
+}
+
+async function handleAddNote() {
+  const text = val('ac-note-input');
+  if (!text) return err('ac-note-err', t('err.noteEmpty'));
+
+  setBusy('btn-add-note', true);
+  const { data, error } = await sb.from('case_notes')
+    .insert({ case_id: activeCaseId, author_id: me.id, text })
+    .select('id, author_id, text, created_at')
+    .single();
+  setBusy('btn-add-note', false);
+
+  if (error) {
+    console.error('Kunde inte spara anteckning:', error);
+    return err('ac-note-err', t('err.noteFailed'));
+  }
+
+  clearErrors();
+  document.getElementById('ac-note-input').value = '';
+  activeCaseNotes.push(data);
+  await renderNotes();
+}
+
+async function handleDeleteNote(noteId) {
+  if (!confirm(t('notes.confirmDelete'))) return;
+  const { error } = await sb.from('case_notes').delete().eq('id', noteId);
+  if (error) {
+    console.error('Kunde inte ta bort anteckning:', error);
+    return err('ac-note-err', t('err.noteFailed'));
+  }
+  activeCaseNotes = activeCaseNotes.filter(n => n.id !== noteId);
+  await renderNotes();
+}
+
 
 // ── RENDER MESSAGES ───────────────────────────────────────────
 // caseExtra (valfri): { category, department, departmentDetail,

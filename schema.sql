@@ -163,6 +163,42 @@ create policy "Messages: admin" on public.messages
   for all using (exists (select 1 from public.admins a where a.id = auth.uid()));
 
 
+-- ── INTERNA ANTECKNINGAR (endast admins) ─────────────────────────
+-- Handläggarnas egna noteringar i ett ärende. Visselblåsaren ska
+-- ALDRIG kunna läsa dem — därför en egen tabell istället för en flagga
+-- på messages, och därför ingen läspolicy för anmälare.
+create table if not exists public.case_notes (
+  id         uuid primary key default gen_random_uuid(),
+  case_id    uuid not null references public.cases(id) on delete cascade,
+  author_id  uuid not null references auth.users(id),
+  text       text not null,
+  created_at timestamptz not null default now()
+);
+alter table public.case_notes enable row level security;
+
+create index if not exists case_notes_case_created_idx
+  on public.case_notes (case_id, created_at);
+
+create policy "Notes: admin läser" on public.case_notes
+  for select using (exists (select 1 from public.admins a where a.id = auth.uid()));
+
+-- author_id = auth.uid() hindrar att någon signerar en anteckning med
+-- en kollegas namn.
+create policy "Notes: admin skriver" on public.case_notes
+  for insert with check (
+    author_id = auth.uid()
+    and exists (select 1 from public.admins a where a.id = auth.uid())
+  );
+
+create policy "Notes: admin raderar egna" on public.case_notes
+  for delete using (
+    author_id = auth.uid()
+    and exists (select 1 from public.admins a where a.id = auth.uid())
+  );
+
+-- Medvetet INGEN update-policy: en anteckning står kvar som den skrevs.
+
+
 -- ── BILAGOR (metadata; filerna ligger i Storage) ─────────────────
 create table if not exists public.attachments (
   id         uuid primary key default gen_random_uuid(),
