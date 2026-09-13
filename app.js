@@ -327,6 +327,11 @@ async function handleCodeEntry() {
   anonCaseData = data[0];
   await renderAnonCase();
   show('view-anon-case');
+  // Tråden ritades medan vyn var dold, och då har rullningen ingen
+  // effekt. Utan detta öppnades långa ärenden längst upp i stället för
+  // vid senaste meddelandet, som i de andra vyerna.
+  const thread = document.getElementById('anon-msgs');
+  thread.scrollTop = thread.scrollHeight;
 }
 
 async function renderAnonCase() {
@@ -338,17 +343,17 @@ async function renderAnonCase() {
   sp.className = `status-pill s-${c.status}`;
 
   const cached = cachedAnonGallery(c.case_id);
-  const extra = {
+  // Tills bilderna är hämtade visas filnamnen.
+  renderCaseFiles('anon-files', cached || (c.attachments || []).map(a => ({ file_name: a.file_name, url: null })));
+
+  await renderMsgs('anon-msgs', c.messages || [], 'employee', {
     subject: c.subject, category: c.category, department: c.department, departmentDetail: c.department_detail,
     whoInvolved: c.who_involved, whereHappened: c.where_happened,
-    whenHappened: c.when_happened, otherActions: c.other_actions,
-    // Tills bilderna är hämtade visas filnamnen.
-    gallery: cached || (c.attachments || []).map(a => ({ file_name: a.file_name, url: null }))
-  };
-  await renderMsgs('anon-msgs', c.messages || [], 'employee', extra);
+    whenHappened: c.when_happened, otherActions: c.other_actions
+  });
   document.getElementById('anon-reply-input').value = '';
 
-  if (!cached) refreshAnonGallery(c, extra);
+  if (!cached) refreshAnonGallery(c);
 }
 
 // ── BILDER FÖR HELT ANONYM ANMÄLARE (typ 1) ────────────────────
@@ -368,19 +373,14 @@ function cachedAnonGallery(caseId) {
   return fresh ? anonGalleryCache.items : null;
 }
 
-async function refreshAnonGallery(c, extra) {
+async function refreshAnonGallery(c) {
   const { data: files, error } = await sb.rpc('open_case_files', { p_code: anonCaseCode });
   if (error) { console.error('Kunde inte öppna bilagorna:', error); return; }
 
   const items = await signAttachments(files || []);
   if (!anonCaseData || anonCaseData.case_id !== c.case_id) return;   // annan kod angiven
   anonGalleryCache = { caseId: c.case_id, items, at: Date.now() };
-
-  // Ett nytt svar kan ha ritat om tråden under tiden; rita bara om den
-  // version som fortfarande visas.
-  if (anonCaseData !== c || !items.length) return;
-  extra.gallery = items;
-  await renderMsgs('anon-msgs', c.messages || [], 'employee', extra);
+  renderCaseFiles('anon-files', items);
 }
 
 async function handleAnonReply() {
@@ -846,8 +846,9 @@ async function openCaseEmp(caseId) {
     whenHappened: c.when_happened, otherActions: c.other_actions,
     reporterType: c.reporter_type, reporterName: c.reporter_name
   };
-  activeCaseExtra.gallery = await signAttachments(attachments || []);
+  const files = await signAttachments(attachments || []);
   if (token !== navToken) return;
+  renderCaseFiles('c-files', files);
   await renderMsgs('emp-msgs', msgs || [], 'employee', activeCaseExtra);
   document.getElementById('emp-reply-input').value = '';
 }
@@ -975,8 +976,9 @@ async function openCaseAdmin(caseId) {
     whenHappened: c.when_happened, otherActions: c.other_actions,
     reporterType: c.reporter_type, reporterName: c.reporter_name
   };
-  activeCaseExtra.gallery = await signAttachments(attachments || []);
+  const files = await signAttachments(attachments || []);
   if (token !== navToken) return;
+  renderCaseFiles('ac-files', files);
   await renderMsgs('admin-msgs', msgs || [], 'admin', activeCaseExtra);
   document.getElementById('admin-reply-input').value = '';
 
@@ -1205,14 +1207,6 @@ async function renderMsgs(id, messages, perspective, caseExtra) {
       bubbleEl.addEventListener('click', () => showReportModal(senderLabel, m.text, m.created_at, caseExtra));
     }
     c.appendChild(wrap);
-
-    // Bilagorna hör till rapporten och ligger därför direkt under den, i
-    // den rullande tråden. De följer med när man scrollar.
-    if (isFirst && caseExtra && caseExtra.gallery && caseExtra.gallery.length) {
-      const row = el('div', `msg ${own ? 'msg-own' : 'msg-other'} msg-gallery`);
-      row.appendChild(buildGallery(caseExtra.gallery));
-      c.appendChild(row);
-    }
   });
   c.scrollTop = c.scrollHeight;
 }
@@ -1311,10 +1305,13 @@ function closeLightbox() {
 }
 
 // ── BILAGOR I ETT ÄRENDE ───────────────────────────────────────
-// Bilagorna ritas inne i chattråden, direkt under rapporten (se
-// renderMsgs). Som ett eget block ovanför tråden trängde de undan
-// meddelandena helt: på en laptopskärm med åtta bilder krympte
-// meddelandeytan till 16 pixlar.
+// Samma rad med små bilder i alla tre ärendevyer, direkt under ärendets
+// rubrik. Raden har fast höjd och rullar i sidled vid många bilder.
+//
+// Två tidigare placeringar fungerade inte. Ett block som bröts på flera
+// rader trängde undan chatten. Inne i chattråden, under rapporten,
+// rullades bilderna ur synfältet när tråden hoppade till senaste
+// meddelandet.
 
 // Signerade länkar för en lista bilagor, alla i ett anrop. Gäller en
 // timme. url blir null om signeringen misslyckas; då visas bara namnet.
@@ -1328,52 +1325,56 @@ async function signAttachments(attachments) {
   return attachments.map(a => ({ file_name: a.file_name, url: urlByPath[a.file_path] || null }));
 }
 
-// items: [{ file_name, url }]. Bilder med länk blir miniatyrer som går
-// att förstora. Övriga filer med länk öppnas i ny flik. Utan länk visas
-// en ikon och namnet.
-function buildGallery(items) {
-  const box  = el('div', 'bubble-gallery');
-  const head = el('div', 'gallery-head');
-  head.textContent = t('anonCase.attachments');
-  const grid = el('div', 'thumb-grid');
+// items: [{ file_name, url }]
+function renderCaseFiles(containerId, items) {
+  const wrap = document.getElementById(containerId);
+  wrap.innerHTML = '';
+  if (!items || !items.length) { wrap.style.display = 'none'; return; }
 
-  items.forEach(a => {
-    const item = el('div', 'thumb-item');
-    const isImage = !!ALLOWED_IMAGE_TYPES[fileExtension(a.file_name)];
+  const label = el('span', 'case-files-label');
+  label.innerHTML = '<i class="ti ti-paperclip" aria-hidden="true"></i>';
+  label.appendChild(document.createTextNode(t('anonCase.attachments')));
 
-    let thumb;
-    if (a.url && isImage) {
-      thumb = el('button', 'thumb');
-      thumb.type = 'button';
-      thumb.setAttribute('aria-label', t('common.enlargeImage', { name: a.file_name }));
-      const img = el('img');
-      img.src = a.url;
-      img.alt = '';
-      img.loading = 'lazy';
-      thumb.appendChild(img);
-      thumb.addEventListener('click', () => openLightbox(a.url, a.file_name));
-    } else if (a.url) {
-      thumb = el('a', 'thumb thumb-file');
-      thumb.href = a.url;
-      thumb.target = '_blank';
-      thumb.rel = 'noopener';
-      thumb.setAttribute('aria-label', a.file_name);
-      thumb.innerHTML = '<i class="ti ti-file" aria-hidden="true"></i>';
-    } else {
-      thumb = el('div', 'thumb thumb-file thumb-nolink');
-      thumb.innerHTML = '<i class="ti ti-paperclip" aria-hidden="true"></i>';
-    }
+  const strip = el('div', 'case-files-strip');
+  items.forEach(a => strip.appendChild(caseFileItem(a)));
 
-    const caption = el('div', 'thumb-caption');
-    caption.textContent = a.file_name;
-    caption.title = a.file_name;
+  wrap.append(label, strip);
+  wrap.style.display = 'flex';
+}
 
-    item.append(thumb, caption);
-    grid.appendChild(item);
-  });
+// Bild med länk: liten ruta som förstoras vid klick. Annan fil med länk,
+// t.ex. en PDF från innan formaten begränsades: ikon som öppnar filen.
+// Utan länk, medan länkarna hämtas: filnamnet.
+function caseFileItem(a) {
+  const isImage = !!ALLOWED_IMAGE_TYPES[fileExtension(a.file_name)];
 
-  box.append(head, grid);
-  return box;
+  if (a.url && isImage) {
+    const btn = el('button', 'thumb');
+    btn.type = 'button';
+    btn.title = a.file_name;
+    btn.setAttribute('aria-label', t('common.enlargeImage', { name: a.file_name }));
+    const img = el('img');
+    img.src = a.url;
+    img.alt = '';
+    btn.appendChild(img);
+    btn.addEventListener('click', () => openLightbox(a.url, a.file_name));
+    return btn;
+  }
+
+  if (a.url) {
+    const link = el('a', 'thumb thumb-file');
+    link.href = a.url;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.title = a.file_name;
+    link.setAttribute('aria-label', a.file_name);
+    link.innerHTML = '<i class="ti ti-file" aria-hidden="true"></i>';
+    return link;
+  }
+
+  const chip = el('span', 'case-file-chip');
+  chip.textContent = a.file_name;
+  return chip;
 }
 
 // ── HELPERS ───────────────────────────────────────────────────
