@@ -14,6 +14,7 @@ Vill du veta hur databasen ser ut *nu*, läs [`../schema.sql`](../schema.sql).
 | `2026-09_bilagor-anonym.sql` | Fix: bilagor gick aldrig upp för helt anonyma anmälare. RLS-policyn frågade `public.cases` direkt, och den tabellens egen RLS gav rollen `anon` noll rader. Går nu via `can_attach_to_anonymous_case()`. |
 | `2026-09_anonym-ser-bilagor.sql` | `get_case_by_code` returnerar nu också bilagornas namn, storlek och tidpunkt — men aldrig `file_path`, så filerna går inte att öppna igen därifrån. |
 | `2026-09_bara-bilder.sql` | Bucketen tar bara emot JPG, PNG, GIF och WEBP. Samma spärr som i formuläret, men på serversidan. |
+| `2026-09_anonym-ser-bilder.sql` | Helt anonyma anmälare ser sina bilder. `open_case_files()` kontrollerar åtkomstkoden och öppnar ett läsfönster på två minuter i Storage, precis tillräckligt för att signera länkarna. |
 
 ## Hur du gör en ny ändring
 

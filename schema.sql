@@ -293,6 +293,78 @@ $$;
 grant execute on function public.can_attach_to_anonymous_case to anon, authenticated;
 
 
+-- ── Läsfönster för typ 1:s bilder ────────────────────────────────
+-- Typ 1 har ingen läsrätt i Storage. open_case_files() kontrollerar
+-- åtkomstkoden och öppnar ett fönster på två minuter för ärendet, så
+-- att webbläsaren hinner signera länkarna. Länkarna gäller sedan en
+-- timme. Under fönstret räcker ärendets UUID för att signera, men det
+-- UUID:t lämnas bara ut till den som redan har koden.
+create table if not exists public.attachment_view_grants (
+  case_id    uuid primary key references public.cases(id) on delete cascade,
+  expires_at timestamptz not null
+);
+alter table public.attachment_view_grants enable row level security;
+-- Inga policyer: bara SECURITY DEFINER-funktionerna nedan rör tabellen.
+
+
+create or replace function public.open_case_files(p_code text)
+returns table(file_path text, file_name text, file_size int, created_at timestamptz)
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+#variable_conflict use_column
+declare
+  v_case_id uuid;
+begin
+  select id into v_case_id
+    from public.cases
+    where reporter_type = 'anonymous_code'
+      and access_code_hash = crypt(p_code, access_code_hash);
+
+  -- Tomt resultat vid fel kod: avslöja aldrig om koden nästan stämde.
+  if v_case_id is null then
+    return;
+  end if;
+
+  delete from public.attachment_view_grants where expires_at < now();
+
+  insert into public.attachment_view_grants (case_id, expires_at)
+  values (v_case_id, now() + interval '2 minutes')
+  on conflict (case_id) do update set expires_at = excluded.expires_at;
+
+  return query
+    select a.file_path, a.file_name, a.file_size, a.created_at
+    from public.attachments a
+    where a.case_id = v_case_id
+    order by a.created_at;
+end;
+$$;
+
+grant execute on function public.open_case_files to anon, authenticated;
+
+
+-- SECURITY DEFINER av samma skäl som can_attach_to_anonymous_case:
+-- rollen anon får inte läsa tabellen själv, och RLS gäller även inuti
+-- ett policyuttryck.
+create or replace function public.has_file_view_grant(p_case_id text)
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.attachment_view_grants
+    where case_id::text = p_case_id
+      and expires_at > now()
+  );
+$$;
+
+grant execute on function public.has_file_view_grant to anon, authenticated;
+
+
 -- ── Skapa helt anonymt ärende (typ 1) ────────────────────────────
 -- SECURITY DEFINER: anroparen har ingen session och kan inte skriva
 -- själv. Returnerar en engångskod — enda vägen tillbaka till ärendet.
@@ -393,10 +465,9 @@ begin
                 'sender_id', m.sender_id
               ) order by m.created_at), '[]'::jsonb)
        from public.messages m where m.case_id = v_case.id),
-      -- Bara namn, storlek och tidpunkt. file_path utelämnas medvetet:
-      -- en nedladdningslänk hade krävt en ny läsväg in i Storage, och
-      -- anmälaren har redan filerna. Det de behöver är bekräftelsen att
-      -- bilagan finns i ärendet.
+      -- Bara namn, storlek och tidpunkt, så filnamnen syns direkt.
+      -- Själva bilderna hämtas via open_case_files(), som öppnar ett
+      -- kort läsfönster i Storage. file_path lämnas därför inte ut här.
       (select coalesce(jsonb_agg(jsonb_build_object(
                 'file_name', a.file_name, 'file_size', a.file_size, 'created_at', a.created_at
               ) order by a.created_at), '[]'::jsonb)
@@ -520,6 +591,12 @@ create policy "Attachments storage: anonym uppladdning"
   on storage.objects for insert with check (
     bucket_id = 'case-attachments'
     and public.can_attach_to_anonymous_case((storage.foldername(name))[1])
+  );
+
+create policy "Attachments storage: anonym läsning via kod"
+  on storage.objects for select using (
+    bucket_id = 'case-attachments'
+    and public.has_file_view_grant((storage.foldername(name))[1])
   );
 
 

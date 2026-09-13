@@ -334,10 +334,19 @@ a:hover { text-decoration: underline; }
 .upload-status { font-size: 13px; color: var(--muted); text-align: center; margin-bottom: 8px; }
 .upload-status:empty { display: none; }
 
-/* Bilagor i ett öppet ärende — mindre rutor, så chatten får plats. */
-.case-gallery { margin-bottom: 14px; }
+/* Bilagor i chattråden, direkt under rapporten. De ligger i den
+   rullande tråden och följer med när man scrollar. Som ett eget block
+   ovanför tråden trängde de undan meddelandena på en laptopskärm. */
+.msg-gallery { margin-top: -6px; }
+.bubble-gallery {
+  max-width: 68%; padding: 10px 12px 12px; border-radius: 14px;
+  background: var(--card); border: 1.5px solid var(--border);
+}
 .gallery-head { font-size: 11px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); }
-.case-gallery .thumb-grid { grid-template-columns: repeat(auto-fill, 88px); gap: 10px; margin-top: 7px; }
+/* Flex i stället för grid: rutan ska bara bli så bred som bilderna kräver. */
+.bubble-gallery .thumb-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+.bubble-gallery .thumb-item { width: 84px; }
+.thumb-nolink { cursor: default; }
 
 .lightbox-overlay {
   display: none; position: fixed; inset: 0; z-index: 600;
@@ -474,14 +483,6 @@ a:hover { text-decoration: underline; }
 .chat-subject { font-size: 16px; font-weight: 700; color: var(--navy); margin-bottom: 2px; }
 .chat-subject:empty { display: none; }
 
-/* ── ATTACHMENTS (admin case view) ───────── */
-.attachments-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-.attachment-chip {
-  display: flex; align-items: center; gap: 6px;
-  background: var(--bg-alt); border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 8px 12px; font-size: 12.5px; color: var(--navy); font-weight: 600;
-}
-
 /* ── ANTECKNINGAR (endast admin) ─────────── */
 /* Raden som rymmer "i"-tipset och plusknappen. Ligger över chatten så
    att knappen syns innan panelen någonsin öppnats. */
@@ -567,18 +568,6 @@ a:hover { text-decoration: underline; }
 .notes-add textarea:focus { outline: none; border-color: var(--gold-dark); box-shadow: 0 0 0 3px rgba(201,163,95,.15); }
 .btn-note-save { width: 100%; }
 
-/* ── BILAGOR HOS ANONYM ANMÄLARE ──────── */
-/* Chips utan länk: de bekräftar att filen finns i ärendet, de öppnar
-   den inte. Därför ingen pekare och ingen hovereffekt. */
-.anon-attachments { margin-bottom: 14px; }
-.anon-attachments-head {
-  font-size: 11px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase;
-  color: var(--muted); margin-bottom: 7px;
-}
-.attachment-chip-static { cursor: default; color: var(--text); }
-.attachment-chip-static i { font-size: 15px; color: var(--muted); }
-.attachment-size { color: var(--muted); font-weight: 500; }
-
 /* ── ADMIN HEADER ────────────────────────── */
 .admin-profile { display: flex; align-items: center; gap: 10px; }
 .admin-profile img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--gold); }
@@ -627,6 +616,6 @@ a:hover { text-decoration: underline; }
   .landing-panel { padding: 40px 20px; }
   .landing-panel h1 { font-size: 26px; }
   .form-wrap, .dash-wrap, .chat-wrap { padding: 28px 20px; }
-  .bubble { max-width: 88%; }
+  .bubble, .bubble-gallery { max-width: 88%; }
   .contact-card { width: 100%; }
 }

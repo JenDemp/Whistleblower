@@ -336,35 +336,51 @@ async function renderAnonCase() {
   const sp = document.getElementById('anon-status');
   sp.textContent = t('status.' + c.status);
   sp.className = `status-pill s-${c.status}`;
-  renderAnonAttachments(c.attachments || []);
-  await renderMsgs('anon-msgs', c.messages || [], 'employee', {
+
+  const cached = cachedAnonGallery(c.case_id);
+  const extra = {
     subject: c.subject, category: c.category, department: c.department, departmentDetail: c.department_detail,
     whoInvolved: c.who_involved, whereHappened: c.where_happened,
-    whenHappened: c.when_happened, otherActions: c.other_actions
-  });
+    whenHappened: c.when_happened, otherActions: c.other_actions,
+    // Tills bilderna är hämtade visas filnamnen.
+    gallery: cached || (c.attachments || []).map(a => ({ file_name: a.file_name, url: null }))
+  };
+  await renderMsgs('anon-msgs', c.messages || [], 'employee', extra);
   document.getElementById('anon-reply-input').value = '';
+
+  if (!cached) refreshAnonGallery(c, extra);
 }
 
-// Visar ATT bilagorna kom fram, inte filerna själva. get_case_by_code
-// returnerar medvetet inte file_path: en nedladdningslänk hade krävt en
-// ny läsväg in i Storage-bucketen, och anmälaren har redan filerna på
-// sin egen dator. Det de behöver är bekräftelsen.
-function renderAnonAttachments(attachments) {
-  const wrap = document.getElementById('anon-attachments-wrap');
-  const list = document.getElementById('anon-attachments-list');
-  list.innerHTML = '';
+// ── BILDER FÖR HELT ANONYM ANMÄLARE (typ 1) ────────────────────
+// Typ 1 har ingen session och därmed ingen läsrätt i Storage. RPC:n
+// open_case_files kontrollerar åtkomstkoden och öppnar ett läsfönster
+// på två minuter för just det ärendet, och länkarna signeras direkt
+// efteråt. Länkarna gäller sedan i en timme.
+//
+// Bilagor läggs bara till när rapporten skickas, så listan ändras
+// aldrig. Den cachas per ärende tills länkarna närmar sig sin
+// utgångstid, så ett nytt svar i chatten hämtar dem inte igen.
+const ANON_GALLERY_TTL_MS = 50 * 60 * 1000;
+let anonGalleryCache = { caseId: null, items: null, at: 0 };
 
-  if (!attachments.length) { wrap.style.display = 'none'; return; }
+function cachedAnonGallery(caseId) {
+  const fresh = anonGalleryCache.caseId === caseId && Date.now() - anonGalleryCache.at < ANON_GALLERY_TTL_MS;
+  return fresh ? anonGalleryCache.items : null;
+}
 
-  attachments.forEach(a => {
-    const chip = el('div', 'attachment-chip attachment-chip-static');
-    const mb = (a.file_size / 1024 / 1024).toFixed(2);
-    chip.innerHTML = `<i class="ti ti-paperclip" aria-hidden="true"></i>
-      <span>${esc(a.file_name)}</span>
-      <span class="attachment-size">${mb} MB</span>`;
-    list.appendChild(chip);
-  });
-  wrap.style.display = 'block';
+async function refreshAnonGallery(c, extra) {
+  const { data: files, error } = await sb.rpc('open_case_files', { p_code: anonCaseCode });
+  if (error) { console.error('Kunde inte öppna bilagorna:', error); return; }
+
+  const items = await signAttachments(files || []);
+  if (!anonCaseData || anonCaseData.case_id !== c.case_id) return;   // annan kod angiven
+  anonGalleryCache = { caseId: c.case_id, items, at: Date.now() };
+
+  // Ett nytt svar kan ha ritat om tråden under tiden; rita bara om den
+  // version som fortfarande visas.
+  if (anonCaseData !== c || !items.length) return;
+  extra.gallery = items;
+  await renderMsgs('anon-msgs', c.messages || [], 'employee', extra);
 }
 
 async function handleAnonReply() {
@@ -830,7 +846,8 @@ async function openCaseEmp(caseId) {
     whenHappened: c.when_happened, otherActions: c.other_actions,
     reporterType: c.reporter_type, reporterName: c.reporter_name
   };
-  await renderAttachmentGallery('c-attachments', attachments || [], token);
+  activeCaseExtra.gallery = await signAttachments(attachments || []);
+  if (token !== navToken) return;
   await renderMsgs('emp-msgs', msgs || [], 'employee', activeCaseExtra);
   document.getElementById('emp-reply-input').value = '';
 }
@@ -952,14 +969,14 @@ async function openCaseAdmin(caseId) {
     anonNoticeEl.style.display = 'flex';
   }
 
-  await renderAttachmentGallery('ac-attachments', attachments || [], token);
-
   activeCaseExtra = {
     subject: c.subject, category: c.category, department: c.department, departmentDetail: c.department_detail,
     whoInvolved: c.who_involved, whereHappened: c.where_happened,
     whenHappened: c.when_happened, otherActions: c.other_actions,
     reporterType: c.reporter_type, reporterName: c.reporter_name
   };
+  activeCaseExtra.gallery = await signAttachments(attachments || []);
+  if (token !== navToken) return;
   await renderMsgs('admin-msgs', msgs || [], 'admin', activeCaseExtra);
   document.getElementById('admin-reply-input').value = '';
 
@@ -1188,6 +1205,14 @@ async function renderMsgs(id, messages, perspective, caseExtra) {
       bubbleEl.addEventListener('click', () => showReportModal(senderLabel, m.text, m.created_at, caseExtra));
     }
     c.appendChild(wrap);
+
+    // Bilagorna hör till rapporten och ligger därför direkt under den, i
+    // den rullande tråden. De följer med när man scrollar.
+    if (isFirst && caseExtra && caseExtra.gallery && caseExtra.gallery.length) {
+      const row = el('div', `msg ${own ? 'msg-own' : 'msg-other'} msg-gallery`);
+      row.appendChild(buildGallery(caseExtra.gallery));
+      c.appendChild(row);
+    }
   });
   c.scrollTop = c.scrollHeight;
 }
@@ -1285,48 +1310,58 @@ function closeLightbox() {
   lightboxReturnFocus = null;
 }
 
-// ── BILAGOR I ETT ÄRENDE (admin och inloggad anmälare) ─────────
-// Bilder visas som miniatyrer som går att förstora. Annat, t.ex. PDF:er
-// från innan formaten begränsades, visas som en länk.
-// Typ 1 använder inte den här: de har ingen läsrätt i Storage och ser
-// bara filnamnen via get_case_by_code (se renderAnonAttachments).
-async function renderAttachmentGallery(containerId, attachments, token) {
-  const wrap = document.getElementById(containerId);
-  if (!attachments.length) { wrap.innerHTML = ''; wrap.style.display = 'none'; return; }
+// ── BILAGOR I ETT ÄRENDE ───────────────────────────────────────
+// Bilagorna ritas inne i chattråden, direkt under rapporten (se
+// renderMsgs). Som ett eget block ovanför tråden trängde de undan
+// meddelandena helt: på en laptopskärm med åtta bilder krympte
+// meddelandeytan till 16 pixlar.
 
-  // En signerad länk per fil, alla i ett enda anrop. Gäller en timme.
-  const { data: signed, error } = await sb.storage.from('case-attachments')
+// Signerade länkar för en lista bilagor, alla i ett anrop. Gäller en
+// timme. url blir null om signeringen misslyckas; då visas bara namnet.
+async function signAttachments(attachments) {
+  if (!attachments || !attachments.length) return [];
+  const { data, error } = await sb.storage.from('case-attachments')
     .createSignedUrls(attachments.map(a => a.file_path), 3600);
-  if (token !== undefined && token !== navToken) return;   // användaren har gått vidare
   if (error) console.error('Kunde inte skapa länkar till bilagor:', error);
   const urlByPath = {};
-  (signed || []).forEach(x => { if (x.path && x.signedUrl) urlByPath[x.path] = x.signedUrl; });
+  (data || []).forEach(x => { if (x.path && x.signedUrl) urlByPath[x.path] = x.signedUrl; });
+  return attachments.map(a => ({ file_name: a.file_name, url: urlByPath[a.file_path] || null }));
+}
 
+// items: [{ file_name, url }]. Bilder med länk blir miniatyrer som går
+// att förstora. Övriga filer med länk öppnas i ny flik. Utan länk visas
+// en ikon och namnet.
+function buildGallery(items) {
+  const box  = el('div', 'bubble-gallery');
   const head = el('div', 'gallery-head');
   head.textContent = t('anonCase.attachments');
   const grid = el('div', 'thumb-grid');
 
-  attachments.forEach(a => {
-    const url  = urlByPath[a.file_path];
+  items.forEach(a => {
     const item = el('div', 'thumb-item');
     const isImage = !!ALLOWED_IMAGE_TYPES[fileExtension(a.file_name)];
 
     let thumb;
-    if (url && isImage) {
+    if (a.url && isImage) {
       thumb = el('button', 'thumb');
       thumb.type = 'button';
       thumb.setAttribute('aria-label', t('common.enlargeImage', { name: a.file_name }));
       const img = el('img');
-      img.src = url;
+      img.src = a.url;
       img.alt = '';
       img.loading = 'lazy';
       thumb.appendChild(img);
-      thumb.addEventListener('click', () => openLightbox(url, a.file_name));
-    } else {
+      thumb.addEventListener('click', () => openLightbox(a.url, a.file_name));
+    } else if (a.url) {
       thumb = el('a', 'thumb thumb-file');
-      if (url) { thumb.href = url; thumb.target = '_blank'; thumb.rel = 'noopener'; }
+      thumb.href = a.url;
+      thumb.target = '_blank';
+      thumb.rel = 'noopener';
       thumb.setAttribute('aria-label', a.file_name);
       thumb.innerHTML = '<i class="ti ti-file" aria-hidden="true"></i>';
+    } else {
+      thumb = el('div', 'thumb thumb-file thumb-nolink');
+      thumb.innerHTML = '<i class="ti ti-paperclip" aria-hidden="true"></i>';
     }
 
     const caption = el('div', 'thumb-caption');
@@ -1337,9 +1372,8 @@ async function renderAttachmentGallery(containerId, attachments, token) {
     grid.appendChild(item);
   });
 
-  wrap.innerHTML = '';
-  wrap.append(head, grid);
-  wrap.style.display = 'block';
+  box.append(head, grid);
+  return box;
 }
 
 // ── HELPERS ───────────────────────────────────────────────────
