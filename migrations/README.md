@@ -13,6 +13,7 @@ Vill du veta hur databasen ser ut *nu*, läs [`../schema.sql`](../schema.sql).
 | `2026-09_anteckningar.sql` | `case_notes` — interna anteckningar per ärende, läs- och skrivbara av alla admins men aldrig av visselblåsaren. |
 | `2026-09_bilagor-anonym.sql` | Fix: bilagor gick aldrig upp för helt anonyma anmälare. RLS-policyn frågade `public.cases` direkt, och den tabellens egen RLS gav rollen `anon` noll rader. Går nu via `can_attach_to_anonymous_case()`. |
 | `2026-09_anonym-ser-bilagor.sql` | `get_case_by_code` returnerar nu också bilagornas namn, storlek och tidpunkt — men aldrig `file_path`, så filerna går inte att öppna igen därifrån. |
+| `2026-09_bara-bilder.sql` | Bucketen tar bara emot JPG, PNG, GIF och WEBP. Samma spärr som i formuläret, men på serversidan. |
 
 ## Hur du gör en ny ändring
 

@@ -224,12 +224,13 @@ function onLangChange() {
   // Anteckningarna ritas av JS ("Du", tomtillstånd, datumformat) och blir
   // därför kvar på gamla språket om vi inte ritar om dem.
   if (document.getElementById('view-case-admin').style.display === 'block') renderNotes();
+  if (pendingFiles.length) renderFilesList();
 }
 
 // ── REPORT TYPE SELECTION ───────────────────────────────────────
 function startNewReport() {
   reportType = null;
-  pendingFiles = [];
+  clearPendingFiles();
   show('view-report-type');
 }
 
@@ -439,7 +440,7 @@ async function handleAdminLogin() {
 
 // ── NEW CASE / REPORT FORM (delas av alla tre typer) ────────────
 async function showNewCase() {
-  pendingFiles = [];
+  clearPendingFiles();
   document.getElementById('new-case-form').reset();
   document.getElementById('nc-files-list').innerHTML = '';
   document.getElementById('dept-detail-group').style.display = 'none';
@@ -458,7 +459,7 @@ function handleReportFormBack() {
 
 function resetReportForm() {
   reportType = null;
-  pendingFiles = [];
+  clearPendingFiles();
 }
 
 function handleDeptChange() {
@@ -482,36 +483,137 @@ function handleDeptChange() {
   }
 }
 
-// ── FILE ATTACHMENTS ─────────────────────────────────────────────
+// ── BILDER SOM BILAGOR ───────────────────────────────────────────
 const MAX_TOTAL_BYTES = 50 * 1024 * 1024;
 
+// Bara vanliga bildformat. Samma lista sätts på Storage-bucketen
+// (migrations/2026-09_bara-bilder.sql), så servern säger nej även om
+// någon tar sig förbi kontrollen här.
+// HEIC står medvetet inte med: bara Safari kan visa det, och en iPhone
+// konverterar själv till JPEG när formatet inte efterfrågas.
+const ALLOWED_IMAGE_TYPES = {
+  jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp'
+};
+
+// File → objekt-URL för förhandsvisningen. Varje URL håller bilden kvar
+// i minnet tills den frigörs, så de släpps när bilden tas bort.
+const previewUrls = new Map();
+
+function fileExtension(name) {
+  const m = /\.([^.]+)$/.exec(name || '');
+  return m ? m[1].toLowerCase() : '';
+}
+
+function isAllowedImage(file) {
+  if (!ALLOWED_IMAGE_TYPES[fileExtension(file.name)]) return false;
+  // Vissa system skickar ingen MIME-typ alls; då får filändelsen räcka.
+  return !file.type || Object.values(ALLOWED_IMAGE_TYPES).includes(file.type);
+}
+
+function totalPendingBytes() {
+  return pendingFiles.reduce((sum, f) => sum + f.size, 0);
+}
+
+// En skärmdump på 300 KB visades som "0,0 MB". Under en megabyte visas KB.
+function fmtSize(bytes) {
+  if (bytes < 1024 * 1024) return Math.max(1, Math.round(bytes / 1024)) + ' KB';
+  return (bytes / 1024 / 1024).toLocaleString(currentLang === 'en' ? 'en-GB' : 'sv-SE',
+    { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' MB';
+}
+
 function handleFilesSelected(inputEl) {
-  pendingFiles = pendingFiles.concat(Array.from(inputEl.files));
-  inputEl.value = '';
+  const rejected = [];
+  let total = totalPendingBytes();
+
+  for (const file of Array.from(inputEl.files)) {
+    const alreadyAdded = pendingFiles.some(f =>
+      f.name === file.name && f.size === file.size && f.lastModified === file.lastModified);
+    if (alreadyAdded) continue;
+
+    if (!isAllowedImage(file)) { rejected.push(t('err.fileType', { name: file.name })); continue; }
+    // Bilden som inte ryms avvisas, men de som redan valts ligger kvar.
+    if (total + file.size > MAX_TOTAL_BYTES) { rejected.push(t('err.fileWouldExceed', { name: file.name })); continue; }
+
+    total += file.size;
+    pendingFiles.push(file);
+    previewUrls.set(file, URL.createObjectURL(file));
+  }
+
+  inputEl.value = '';   // annars går samma fil inte att välja igen efter borttagning
+  hideError('nc-files-err');
   renderFilesList();
+  if (rejected.length) err('nc-files-err', rejected.join(' '));
 }
 
 function removeFile(idx) {
-  pendingFiles.splice(idx, 1);
+  const [file] = pendingFiles.splice(idx, 1);
+  if (file && previewUrls.has(file)) {
+    URL.revokeObjectURL(previewUrls.get(file));
+    previewUrls.delete(file);
+  }
+  hideError('nc-files-err');
   renderFilesList();
 }
 
+function clearPendingFiles() {
+  previewUrls.forEach(url => URL.revokeObjectURL(url));
+  previewUrls.clear();
+  pendingFiles = [];
+  hideError('nc-files-err');
+  renderFilesList();
+}
+
+// Miniatyrerna byggs med DOM-anrop, inte innerHTML: ett filnamn kan
+// innehålla citattecken, och esc() skyddar bara text, inte attribut.
 function renderFilesList() {
-  const list = document.getElementById('nc-files-list');
+  const list  = document.getElementById('nc-files-list');
+  const usage = document.getElementById('nc-files-usage');
   list.innerHTML = '';
-  let total = 0;
-  pendingFiles.forEach((f, idx) => {
-    total += f.size;
-    const chip = el('div', 'file-chip');
-    chip.innerHTML = `<span>${esc(f.name)} (${(f.size / 1024 / 1024).toFixed(2)} MB)</span><span class="file-remove" onclick="removeFile(${idx})">✕</span>`;
-    list.appendChild(chip);
+  usage.innerHTML = '';
+
+  pendingFiles.forEach((file, idx) => {
+    const url  = previewUrls.get(file);
+    const item = el('div', 'thumb-item');
+
+    const thumb = el('button', 'thumb');
+    thumb.type = 'button';
+    thumb.setAttribute('aria-label', t('common.enlargeImage', { name: file.name }));
+    const img = el('img');
+    img.src = url;
+    img.alt = '';
+    thumb.appendChild(img);
+    thumb.addEventListener('click', () => openLightbox(url, file.name));
+
+    const remove = el('button', 'thumb-remove');
+    remove.type = 'button';
+    remove.setAttribute('aria-label', t('reportForm.removeImage', { name: file.name }));
+    remove.innerHTML = '<i class="ti ti-x" aria-hidden="true"></i>';
+    remove.addEventListener('click', () => removeFile(idx));
+
+    const caption = el('div', 'thumb-caption');
+    caption.textContent = file.name;
+    caption.title = file.name;
+
+    const size = el('div', 'thumb-size');
+    size.textContent = fmtSize(file.size);
+
+    item.append(thumb, remove, caption, size);
+    list.appendChild(item);
   });
-  if (total > MAX_TOTAL_BYTES) err('nc-err', t('err.filesTooLarge'));
-  else clearErrors();
+
+  if (!pendingFiles.length) return;
+  const used = totalPendingBytes();
+  const bar  = el('div', 'files-usage-bar');
+  const fill = el('span');
+  fill.style.width = Math.min(100, used / MAX_TOTAL_BYTES * 100).toFixed(1) + '%';
+  bar.appendChild(fill);
+  const text = el('div', 'files-usage-text');
+  text.textContent = t('reportForm.sizeUsed', { used: fmtSize(used) });
+  usage.append(bar, text);
 }
 
 // Supabase Storage avvisar nycklar med icke-ASCII, # eller % med
-// InvalidKey. Ett svenskt filnamn som "Bevis åäö.pdf" gick allttså aldrig
+// InvalidKey. Ett svenskt filnamn som "Bevis åäö.jpg" gick alltså aldrig
 // upp. Det riktiga namnet sparas oförändrat i attachments.file_name,
 // så handläggaren ser ändå vad filen heter.
 function storageSafeName(name) {
@@ -523,9 +625,16 @@ function storageSafeName(name) {
 
 async function uploadPendingFiles(caseId) {
   const failures = [];
-  for (const file of pendingFiles) {
-    const path = `${caseId}/${Date.now()}_${storageSafeName(file.name)}`;
-    const { error: upErr } = await sb.storage.from('case-attachments').upload(path, file);
+  const status = document.getElementById('nc-upload-status');
+  const total  = pendingFiles.length;
+
+  for (const [i, file] of pendingFiles.entries()) {
+    status.textContent = t('reportForm.uploading', { n: i + 1, total });
+    // Index i nyckeln: "bild å.jpg" och "bild ä.jpg" saneras båda till
+    // bild_a.jpg, och utan det skulle den andra krocka med den första.
+    const path = `${caseId}/${Date.now()}_${i}_${storageSafeName(file.name)}`;
+    const contentType = file.type || ALLOWED_IMAGE_TYPES[fileExtension(file.name)];
+    const { error: upErr } = await sb.storage.from('case-attachments').upload(path, file, { contentType });
     if (upErr) {
       console.error('Bilageuppladdning misslyckades:', file.name, upErr);
       failures.push(file.name);
@@ -537,10 +646,12 @@ async function uploadPendingFiles(caseId) {
       failures.push(file.name);
     }
   }
-  pendingFiles = [];
+
+  status.textContent = '';
+  clearPendingFiles();
   if (failures.length) {
-    // Anmälan är redan skickad vid det här laget — felet gäller bara bilagorna,
-    // så vi varnar utan att avbryta flödet.
+    // Rapporten är redan skickad vid det här laget — felet gäller bara
+    // bilderna, så vi varnar utan att avbryta flödet.
     alert(t('err.attachmentsFailed') + '\n' + failures.join(', '));
   }
 }
@@ -582,11 +693,16 @@ async function handleCreateCase() {
       p_when_happened: when || null, p_what_happened: null,
       p_other_actions: actions || null, p_message: message
     });
-    setBusy('btn-create-case', false);
-    if (error || !data || !data[0]) return err('nc-err', (error && error.message) || t('err.generic'));
+    if (error || !data || !data[0]) {
+      setBusy('btn-create-case', false);
+      return err('nc-err', (error && error.message) || t('err.generic'));
+    }
 
     const row = data[0];
+    // Knappen hålls låst tills bilderna är uppe. Annars kan ett andra klick
+    // skapa ett nytt ärende medan det första fortfarande laddar upp.
     if (pendingFiles.length) await uploadPendingFiles(row.case_id);
+    setBusy('btn-create-case', false);
     sb.functions.invoke('notify', { body: { type: 'new_case', case_id: row.case_id } });
     showCodeConfirm(row.access_code, row.wb_token);
     return;
@@ -605,11 +721,14 @@ async function handleCreateCase() {
     p_reporter_name:  reportType === 'open' ? me.name : null,
     p_reporter_phone: reportType === 'open' ? (me.phone || null) : null
   });
-  setBusy('btn-create-case', false);
-  if (error || !data || !data[0]) return err('nc-err', (error && error.message) || t('err.generic'));
+  if (error || !data || !data[0]) {
+    setBusy('btn-create-case', false);
+    return err('nc-err', (error && error.message) || t('err.generic'));
+  }
 
   const newCaseId = data[0].case_id;
   if (pendingFiles.length) await uploadPendingFiles(newCaseId);
+  setBusy('btn-create-case', false);
   sb.functions.invoke('notify', { body: { type: 'new_case', case_id: newCaseId } });
 
   resetReportForm();
@@ -690,9 +809,11 @@ async function openCaseEmp(caseId) {
   activeCaseId = caseId;
   const token = show('view-case-emp');
 
-  const [{ data: c }, { data: msgs }] = await Promise.all([
+  const [{ data: c }, { data: msgs }, { data: attachments }] = await Promise.all([
     sb.from('cases').select('*').eq('id', caseId).single(),
-    sb.from('messages').select('*').eq('case_id', caseId).order('created_at', { ascending: true })
+    sb.from('messages').select('*').eq('case_id', caseId).order('created_at', { ascending: true }),
+    sb.from('attachments').select('file_path, file_name, file_size, created_at')
+      .eq('case_id', caseId).order('created_at', { ascending: true })
   ]);
 
   if (token !== navToken) return;         // användaren har navigerat vidare
@@ -709,6 +830,7 @@ async function openCaseEmp(caseId) {
     whenHappened: c.when_happened, otherActions: c.other_actions,
     reporterType: c.reporter_type, reporterName: c.reporter_name
   };
+  await renderAttachmentGallery('c-attachments', attachments || [], token);
   await renderMsgs('emp-msgs', msgs || [], 'employee', activeCaseExtra);
   document.getElementById('emp-reply-input').value = '';
 }
@@ -805,7 +927,7 @@ async function openCaseAdmin(caseId) {
     // employee_id är aldrig med i select — anonymitet upprätthålls på query-nivå
     sb.from('cases').select('id, anonymous_token, reporter_type, reporter_name, reporter_phone, subject, category, department, department_detail, status, who_involved, where_happened, when_happened, other_actions').eq('id', caseId).single(),
     sb.from('messages').select('*').eq('case_id', caseId).order('created_at', { ascending: true }),
-    sb.from('attachments').select('*').eq('case_id', caseId)
+    sb.from('attachments').select('*').eq('case_id', caseId).order('created_at', { ascending: true })
   ]);
 
   if (token !== navToken) return;         // användaren har navigerat vidare
@@ -830,16 +952,7 @@ async function openCaseAdmin(caseId) {
     anonNoticeEl.style.display = 'flex';
   }
 
-  const attWrap = document.getElementById('ac-attachments');
-  attWrap.innerHTML = '';
-  for (const a of (attachments || [])) {
-    const { data: signed } = await sb.storage.from('case-attachments').createSignedUrl(a.file_path, 3600);
-    const chip = el('a', 'attachment-chip');
-    chip.href = (signed && signed.signedUrl) || '#';
-    chip.target = '_blank';
-    chip.innerHTML = `📎 ${esc(a.file_name)}`;
-    attWrap.appendChild(chip);
-  }
+  await renderAttachmentGallery('ac-attachments', attachments || [], token);
 
   activeCaseExtra = {
     subject: c.subject, category: c.category, department: c.department, departmentDetail: c.department_detail,
@@ -1128,6 +1241,107 @@ function closeReportModal() {
   if (modal) modal.style.display = 'none';
 }
 
+// ── BILDVISARE ─────────────────────────────────────────────────
+let lightboxReturnFocus = null;
+
+function openLightbox(src, caption) {
+  let box = document.getElementById('lightbox');
+  if (!box) {
+    box = el('div', 'lightbox-overlay');
+    box.id = 'lightbox';
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-modal', 'true');
+    box.innerHTML = `
+      <button type="button" class="lightbox-close"><i class="ti ti-x" aria-hidden="true"></i></button>
+      <figure class="lightbox-figure">
+        <img class="lightbox-img" alt="">
+        <figcaption class="lightbox-caption"></figcaption>
+      </figure>`;
+    document.body.appendChild(box);
+    // Klick på den mörka bakgrunden stänger, klick på själva bilden gör det inte.
+    box.addEventListener('click', e => {
+      if (e.target === box || e.target.closest('.lightbox-close')) closeLightbox();
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+  }
+
+  lightboxReturnFocus = document.activeElement;
+  const closeBtn = box.querySelector('.lightbox-close');
+  closeBtn.setAttribute('aria-label', t('common.close'));
+  const img = box.querySelector('.lightbox-img');
+  img.src = src;
+  img.alt = caption || '';
+  box.querySelector('.lightbox-caption').textContent = caption || '';
+  box.style.display = 'flex';
+  closeBtn.focus();
+}
+
+function closeLightbox() {
+  const box = document.getElementById('lightbox');
+  if (!box || box.style.display !== 'flex') return;
+  box.style.display = 'none';
+  box.querySelector('.lightbox-img').removeAttribute('src');
+  if (lightboxReturnFocus && lightboxReturnFocus.focus) lightboxReturnFocus.focus();
+  lightboxReturnFocus = null;
+}
+
+// ── BILAGOR I ETT ÄRENDE (admin och inloggad anmälare) ─────────
+// Bilder visas som miniatyrer som går att förstora. Annat, t.ex. PDF:er
+// från innan formaten begränsades, visas som en länk.
+// Typ 1 använder inte den här: de har ingen läsrätt i Storage och ser
+// bara filnamnen via get_case_by_code (se renderAnonAttachments).
+async function renderAttachmentGallery(containerId, attachments, token) {
+  const wrap = document.getElementById(containerId);
+  if (!attachments.length) { wrap.innerHTML = ''; wrap.style.display = 'none'; return; }
+
+  // En signerad länk per fil, alla i ett enda anrop. Gäller en timme.
+  const { data: signed, error } = await sb.storage.from('case-attachments')
+    .createSignedUrls(attachments.map(a => a.file_path), 3600);
+  if (token !== undefined && token !== navToken) return;   // användaren har gått vidare
+  if (error) console.error('Kunde inte skapa länkar till bilagor:', error);
+  const urlByPath = {};
+  (signed || []).forEach(x => { if (x.path && x.signedUrl) urlByPath[x.path] = x.signedUrl; });
+
+  const head = el('div', 'gallery-head');
+  head.textContent = t('anonCase.attachments');
+  const grid = el('div', 'thumb-grid');
+
+  attachments.forEach(a => {
+    const url  = urlByPath[a.file_path];
+    const item = el('div', 'thumb-item');
+    const isImage = !!ALLOWED_IMAGE_TYPES[fileExtension(a.file_name)];
+
+    let thumb;
+    if (url && isImage) {
+      thumb = el('button', 'thumb');
+      thumb.type = 'button';
+      thumb.setAttribute('aria-label', t('common.enlargeImage', { name: a.file_name }));
+      const img = el('img');
+      img.src = url;
+      img.alt = '';
+      img.loading = 'lazy';
+      thumb.appendChild(img);
+      thumb.addEventListener('click', () => openLightbox(url, a.file_name));
+    } else {
+      thumb = el('a', 'thumb thumb-file');
+      if (url) { thumb.href = url; thumb.target = '_blank'; thumb.rel = 'noopener'; }
+      thumb.setAttribute('aria-label', a.file_name);
+      thumb.innerHTML = '<i class="ti ti-file" aria-hidden="true"></i>';
+    }
+
+    const caption = el('div', 'thumb-caption');
+    caption.textContent = a.file_name;
+    caption.title = a.file_name;
+
+    item.append(thumb, caption);
+    grid.appendChild(item);
+  });
+
+  wrap.innerHTML = '';
+  wrap.append(head, grid);
+  wrap.style.display = 'block';
+}
+
 // ── HELPERS ───────────────────────────────────────────────────
 function el(tag, className) { const e = document.createElement(tag); if (className) e.className = className; return e; }
 function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
@@ -1138,6 +1352,7 @@ function fmt(iso) {
 }
 function val(id) { return (document.getElementById(id).value || '').trim(); }
 function err(id, msg) { const e = document.getElementById(id); if (!e) return; e.textContent = msg; e.style.display = 'block'; }
+function hideError(id) { const e = document.getElementById(id); if (e) e.style.display = 'none'; }
 function clearErrors() { document.querySelectorAll('.error-msg').forEach(e => { e.style.display = 'none'; }); }
 function setBusy(btnId, busy) {
   const btn = document.getElementById(btnId);

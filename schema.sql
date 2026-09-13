@@ -492,10 +492,15 @@ $$;
 grant execute on function public.create_case to authenticated;
 
 
--- ── STORAGE (bilagor, max 50MB per fil) ──────────────────────────
-insert into storage.buckets (id, name, public, file_size_limit)
-values ('case-attachments', 'case-attachments', false, 52428800)
-on conflict (id) do update set file_size_limit = 52428800;
+-- ── STORAGE (bilagor: bara bilder, max 50MB per fil) ─────────────
+-- allowed_mime_types är serverns egen spärr. Klienten kontrollerar
+-- samma sak, men den kontrollen går att ta sig förbi — den här inte.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('case-attachments', 'case-attachments', false, 52428800,
+        array['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
+on conflict (id) do update
+  set file_size_limit    = excluded.file_size_limit,
+      allowed_mime_types = excluded.allowed_mime_types;
 
 create policy "Attachments storage: medarbetare läser/laddar upp"
   on storage.objects for all using (

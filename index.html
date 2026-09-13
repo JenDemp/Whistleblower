@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>JENSEN Whistleblower</title>
-  <link rel="stylesheet" href="style.css?v=20260910d">
+  <link rel="stylesheet" href="style.css?v=20260913a">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.46.0/dist/tabler-icons.min.css">
 </head>
 <body>
@@ -534,13 +534,22 @@
           <textarea id="q-actions" class="textarea-small"></textarea>
         </div>
 
-        <div class="form-group">
-          <label for="nc-files" data-i18n="reportForm.attachments">Bifoga bevismaterial (max 50MB totalt)</label>
-          <input type="file" id="nc-files" multiple accept="image/*,.pdf,.doc,.docx">
-          <div id="nc-files-list" class="files-list"></div>
+        <div class="form-group form-group-files">
+          <label for="nc-files" data-i18n="reportForm.attachments">Bifoga bilder (max 50 MB totalt)</label>
+          <p class="field-hint" data-i18n="reportForm.attachmentsHint">JPG, PNG, GIF eller WEBP. Du kan välja flera bilder. Klicka på en bild för att se den större.</p>
+          <input type="file" id="nc-files" class="file-input-hidden" multiple
+                 accept="image/jpeg,image/png,image/gif,image/webp,.jpg,.jpeg,.png,.gif,.webp">
+          <label for="nc-files" class="btn-file-pick">
+            <i class="ti ti-photo-plus" aria-hidden="true"></i>
+            <span data-i18n="reportForm.addImages">Välj bilder</span>
+          </label>
+          <div class="error-msg" id="nc-files-err"></div>
+          <div id="nc-files-list" class="thumb-grid"></div>
+          <div id="nc-files-usage" class="files-usage"></div>
         </div>
 
         <div class="error-msg" id="nc-err"></div>
+        <div id="nc-upload-status" class="upload-status" aria-live="polite"></div>
         <button id="btn-create-case" class="btn btn-gold btn-full" onclick="handleCreateCase()" data-i18n="reportForm.submit">Skicka rapport</button>
       </form>
     </div>
@@ -580,6 +589,8 @@
           <span id="c-status" class="status-pill"></span>
         </div>
       </div>
+
+      <div id="c-attachments" class="case-gallery" style="display:none;"></div>
 
       <div class="msgs" id="emp-msgs"></div>
 
@@ -650,7 +661,7 @@
         🔒 Denna visselblåsare är anonym. Deras verkliga identitet är inte tillgänglig för dig och kan inte spåras.
       </div>
 
-      <div id="ac-attachments" class="attachments-list"></div>
+      <div id="ac-attachments" class="case-gallery" style="display:none;"></div>
 
       <div class="notes-bar">
         <span class="notes-info" tabindex="0" role="note" aria-describedby="notes-tip">
@@ -705,7 +716,7 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.js"></script>
-<script src="i18n.js?v=20260910d"></script>
-<script src="app.js?v=20260910d"></script>
+<script src="i18n.js?v=20260913a"></script>
+<script src="app.js?v=20260913a"></script>
 </body>
 </html>
