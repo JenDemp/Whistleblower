@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>JENSEN Whistleblower</title>
-  <link rel="stylesheet" href="style.css?v=20260914a">
+  <link rel="stylesheet" href="style.css?v=20260914b">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.46.0/dist/tabler-icons.min.css">
 </head>
 <body>
@@ -401,13 +401,14 @@
         </div>
       </div>
 
-      <div id="anon-files" class="case-files" style="display:none;"></div>
-
       <div class="notice notice-amber" style="margin:0 0 12px;" data-i18n="anonCase.codeWarning">
         🔑 Spara din åtkomstkod på en säker plats. Det är den enda vägen tillbaka till detta ärende.
       </div>
 
-      <div class="msgs" id="anon-msgs"></div>
+      <div class="thread-scroll" id="anon-thread">
+        <div id="anon-files" class="case-files" style="display:none;"></div>
+        <div class="msgs" id="anon-msgs"></div>
+      </div>
 
       <div class="reply-area">
         <div class="reply-col">
@@ -587,9 +588,10 @@
         </div>
       </div>
 
-      <div id="c-files" class="case-files" style="display:none;"></div>
-
-      <div class="msgs" id="emp-msgs"></div>
+      <div class="thread-scroll" id="emp-thread">
+        <div id="c-files" class="case-files" style="display:none;"></div>
+        <div class="msgs" id="emp-msgs"></div>
+      </div>
 
       <div class="reply-area">
         <div class="reply-col">
@@ -654,12 +656,6 @@
         </div>
       </div>
 
-      <div id="ac-files" class="case-files" style="display:none;"></div>
-
-      <div class="notice notice-amber" style="margin:0 0 12px;" id="ac-anon-notice" data-i18n="adminCase.anonNotice">
-        🔒 Denna visselblåsare är anonym. Deras verkliga identitet är inte tillgänglig för dig och kan inte spåras.
-      </div>
-
       <div class="notes-bar">
         <span class="notes-info" tabindex="0" role="note" aria-describedby="notes-tip">
           <i class="ti ti-info-circle" aria-hidden="true"></i>
@@ -675,7 +671,10 @@
 
       <div class="case-split" id="ac-split">
         <div class="case-thread">
-          <div class="msgs" id="admin-msgs"></div>
+          <div class="thread-scroll" id="admin-thread">
+            <div id="ac-files" class="case-files" style="display:none;"></div>
+            <div class="msgs" id="admin-msgs"></div>
+          </div>
 
           <div class="reply-area">
             <div class="reply-col">
@@ -713,7 +712,7 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.js"></script>
-<script src="i18n.js?v=20260914a"></script>
-<script src="app.js?v=20260914a"></script>
+<script src="i18n.js?v=20260914b"></script>
+<script src="app.js?v=20260914b"></script>
 </body>
 </html>

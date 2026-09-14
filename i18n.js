@@ -217,7 +217,6 @@ const translations = {
 
     'adminCase.category': 'Kategori:',
     'adminCase.status': 'Status:',
-    'adminCase.anonNotice': '🔒 Denna visselblåsare är anonym. Deras verkliga identitet är inte tillgänglig för dig och kan inte spåras.',
 
     'notes.title': 'Anteckningar',
     'notes.panelTitle': 'Interna anteckningar',
@@ -503,7 +502,6 @@ const translations = {
 
     'adminCase.category': 'Category:',
     'adminCase.status': 'Status:',
-    'adminCase.anonNotice': '🔒 This reporter is anonymous. Their real identity is not available to you and cannot be traced.',
 
     'notes.title': 'Notes',
     'notes.panelTitle': 'Internal notes',

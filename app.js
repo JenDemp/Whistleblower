@@ -401,7 +401,7 @@ async function handleCodeEntry() {
   // Tråden ritades medan vyn var dold, och då har rullningen ingen
   // effekt. Utan detta öppnades långa ärenden längst upp i stället för
   // vid senaste meddelandet, som i de andra vyerna.
-  const thread = document.getElementById('anon-msgs');
+  const thread = document.getElementById('anon-thread');
   thread.scrollTop = thread.scrollHeight;
 }
 
@@ -1120,13 +1120,10 @@ async function openCaseAdmin(caseId) {
   activeCaseStatus = c.status;
 
   const reporterInfoEl = document.getElementById('ac-reporter-info');
-  const anonNoticeEl   = document.getElementById('ac-anon-notice');
   if (c.reporter_type === 'open') {
     reporterInfoEl.innerHTML = `${t('reportType.t3title')}: <strong>${esc(c.reporter_name || '')}</strong>${c.reporter_phone ? ' · ' + esc(c.reporter_phone) : ''}`;
-    anonNoticeEl.style.display = 'none';
   } else {
     reporterInfoEl.textContent = c.reporter_type === 'anonymous_email' ? t('reportType.t2title') : t('reportType.t1title');
-    anonNoticeEl.style.display = 'flex';
   }
 
   activeCaseExtra = {
@@ -1372,7 +1369,9 @@ async function renderMsgs(id, messages, perspective, caseExtra) {
     }
     c.appendChild(wrap);
   });
-  c.scrollTop = c.scrollHeight;
+  // Tråden rullar i omslaget som även rymmer bilagorna överst.
+  const scroller = c.closest('.thread-scroll') || c;
+  scroller.scrollTop = scroller.scrollHeight;
 }
 
 // ── FÖRSTORAD VY AV ANMÄLAN ─────────────────────────────────────
@@ -1469,13 +1468,12 @@ function closeLightbox() {
 }
 
 // ── BILAGOR I ETT ÄRENDE ───────────────────────────────────────
-// Samma rad med små bilder i alla tre ärendevyer, direkt under ärendets
-// rubrik. Raden har fast höjd och rullar i sidled vid många bilder.
+// Samma bildrad i alla tre ärendevyer, överst i den rullande tråden
+// (.thread-scroll) ovanför rapporten. Man rullar förbi den som förbi
+// vilket meddelande som helst, så den tar ingen fast plats från chatten.
 //
-// Två tidigare placeringar fungerade inte. Ett block som bröts på flera
-// rader trängde undan chatten. Inne i chattråden, under rapporten,
-// rullades bilderna ur synfältet när tråden hoppade till senaste
-// meddelandet.
+// Tidigare låg raden fast under ärendets rubrik. Den syntes alltid, men
+// åt av höjden som chatten och anteckningarna delar på.
 
 // Signerade länkar för en lista bilagor, alla i ett anrop. Gäller en
 // timme. url blir null om signeringen misslyckas; då visas bara namnet.
@@ -1492,8 +1490,15 @@ async function signAttachments(attachments) {
 // items: [{ file_name, url }]
 function renderCaseFiles(containerId, items) {
   const wrap = document.getElementById(containerId);
+  // Byts bilderna ut medan personen läser längst ner, t.ex. när en anonym
+  // anmälares bilder blir klara, ska läsläget stå kvar i stället för att
+  // tråden hoppar när innehållet ovanför ändrar höjd.
+  const scroller = wrap.closest('.thread-scroll');
+  const atBottom = !!scroller && scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 4;
+  const keepBottom = () => { if (atBottom) scroller.scrollTop = scroller.scrollHeight; };
+
   wrap.innerHTML = '';
-  if (!items || !items.length) { wrap.style.display = 'none'; return; }
+  if (!items || !items.length) { wrap.style.display = 'none'; keepBottom(); return; }
 
   const label = el('span', 'case-files-label');
   label.innerHTML = '<i class="ti ti-paperclip" aria-hidden="true"></i>';
@@ -1504,6 +1509,7 @@ function renderCaseFiles(containerId, items) {
 
   wrap.append(label, strip);
   wrap.style.display = 'flex';
+  keepBottom();
 }
 
 // Bild med länk: liten ruta som förstoras vid klick. Annan fil med länk,
