@@ -78,14 +78,34 @@ window.addEventListener('popstate', async e => {
 
 async function restoreView(state) {
   if (!state || !state.view) { showLanding(); return; }
+
+  // Utloggad användare ska inte kunna backa in i inloggade vyer.
+  const needsLogin = ['view-emp-dash', 'view-admin-dash', 'view-case-emp', 'view-case-admin'];
+  if (needsLogin.includes(state.view) && !me) { showLanding(); return; }
+
   switch (state.view) {
     case 'view-landing':    showLanding(state.section || undefined); break;
     case 'view-emp-dash':   await showEmpDash(); break;
     case 'view-admin-dash': await showAdminDash(); break;
     case 'view-case-emp':   state.caseId ? await openCaseEmp(state.caseId)   : await showEmpDash();   break;
     case 'view-case-admin': state.caseId ? await openCaseAdmin(state.caseId) : await showAdminDash(); break;
-    // Anmälningsformuläret återställs som ren vy. showNewCase() hade
-    // nollat fälten och raderat det användaren hunnit skriva.
+    // Formuläret återställs som ren vy, så att det som skrivits finns kvar.
+    // Men bara medan rapporten pågår: efter att den skickats, eller efter
+    // utloggning, ska bakåtknappen inte visa texten igen.
+    case 'view-new-case':
+      if (!reportType || (reportType !== 'anonymous_code' && !me)) { showLanding(); break; }
+      show(state.view); break;
+    // Åtkomstkoden visas en gång. När personen gått vidare ska den inte
+    // gå att backa fram, t.ex. av nästa person vid en delad dator.
+    case 'view-code-confirm':
+      if (!lastAccessCode) { showLanding(); break; }
+      show(state.view); break;
+    case 'view-anon-case':
+      if (!anonCaseData) { show('view-anon-code-entry'); break; }
+      show(state.view); break;
+    case 'view-reset-password':
+      if (!passwordRecovery) { showLanding(); break; }
+      show(state.view); break;
     default: show(state.view);
   }
 }
@@ -129,12 +149,20 @@ async function handleLogout() {
 }
 
 // ── AUTH: react to session changes ──────────────────────────────
+// Satt från att en återställningslänk öppnats tills ett nytt lösenord
+// sparats. Se loadUserContext.
+let passwordRecovery = false;
+
 sb.auth.onAuthStateChange(async (event, session) => {
-  if (event === 'PASSWORD_RECOVERY') { show('view-reset-password'); return; }
+  if (event === 'PASSWORD_RECOVERY') {
+    passwordRecovery = true;
+    show('view-reset-password');
+    return;
+  }
 
   if (event === 'SIGNED_OUT') {
     me = null; meType = null; activeCaseId = null; reportType = null;
-    adminsMapCache = null;
+    adminsMapCache = null; passwordRecovery = false;
     showLanding();
     return;
   }
@@ -182,10 +210,25 @@ async function loadUserContext(session) {
     meType = 'employee';
   }
 
+  // En återställningslänk ger både en återställnings- och en vanlig
+  // inloggningshändelse, i valfri ordning. Utan den här spärren laddades
+  // dashboarden klart sist och tog över formuläret för nytt lösenord.
+  if (passwordRecovery) { show('view-reset-password'); return; }
+
   try {
-    if (meType === 'admin') await showAdminDash();
-    else if (reportType) await showNewCase();   // kom hit via välj typ → registrera
-    else await showEmpDash();
+    if (meType === 'admin') {
+      reportType = null;
+      await showAdminDash();
+    } else if (reportType && reportType !== 'anonymous_code') {
+      // Personen valde typ 2 eller 3 och loggade in för att skicka en
+      // rapport. Kontot bestämmer typen, inte valet på typsidan: annars
+      // nekade databasen rapporten när valet och kontot inte stämde.
+      reportType = me.reporterType;
+      await showNewCase();
+    } else {
+      reportType = null;
+      await showEmpDash();
+    }
   } catch (e) {
     // Renderingen sprack — nästan alltid övergående (nätverk, långsam query).
     // Logga INTE ut användaren för det; visa felet istället.
@@ -201,6 +244,11 @@ function showLoadError() {
 
 // ── LANDING ───────────────────────────────────────────────────
 function showLanding(section) {
+  // Ett öppet anonymt ärende ska inte gå att nå med bakåtknappen när man
+  // lämnat det. På en delad dator kan nästa person annars läsa tråden.
+  forgetAnonCase();
+  resumeReport = false;
+
   // show() skriver en historikpost utan section — låt den vara tyst och
   // skriv en enda korrekt post här nedan istället.
   const wasSuppressed = suppressHistory;
@@ -229,6 +277,9 @@ function onLangChange() {
 
 // ── REPORT TYPE SELECTION ───────────────────────────────────────
 function startNewReport() {
+  // Inloggad anmälare har redan en fast typ. Utan detta hamnade de på
+  // typvalet och vidare till "Skapa konto", fast de redan var inloggade.
+  if (me && meType === 'employee') { newCaseForExistingUser(); return; }
   reportType = null;
   clearPendingFiles();
   show('view-report-type');
@@ -244,6 +295,12 @@ function newCaseForExistingUser() {
 }
 
 function selectReportType(type) {
+  // Den som redan är inloggad ska inte skickas till "Skapa konto".
+  if (me && type !== 'anonymous_code') {
+    if (meType === 'employee') newCaseForExistingUser();
+    else showAdminDash();
+    return;
+  }
   reportType = type;
 
   if (type === 'anonymous_code') {
@@ -303,7 +360,8 @@ async function handleSendCode() {
   setBusy('btn-send-code', false);
 
   if (error) {
-    return err('reg-err', error.message === 'User already registered' ? t('err.alreadyRegistered') : error.message);
+    if (error.message === 'User already registered') return err('reg-err', t('err.alreadyRegistered'));
+    return err('reg-err', isNetworkError(error) ? t('err.network') : error.message);
   }
   if (data.session) return; // auto-confirmed — onAuthStateChange handles redirect
 
@@ -314,7 +372,12 @@ async function handleSendCode() {
 }
 
 // ── FOLLOW UP ─────────────────────────────────────────────────
-function showFollowUp() { show('view-followup-choice'); }
+function showFollowUp() {
+  reportType = null;
+  if (me && meType === 'employee') { showEmpDash(); return; }
+  if (me && meType === 'admin')    { showAdminDash(); return; }
+  show('view-followup-choice');
+}
 
 async function handleCodeEntry() {
   const code = val('access-code-input');
@@ -322,9 +385,17 @@ async function handleCodeEntry() {
   setBusy('btn-code-entry', true);
   const { data, error } = await sb.rpc('get_case_by_code', { p_code: code });
   setBusy('btn-code-entry', false);
-  if (error || !data || !data.length) return err('code-entry-err', t('err.invalidCode'));
+  // Ett nätverksfel är inte en felaktig kod. Tidigare fick båda texten
+  // "Ogiltig kod", och då började folk tvivla på koden de sparat.
+  if (error) return err('code-entry-err', friendlyError(error));
+  if (!data || !data.length) return err('code-entry-err', t('err.invalidCode'));
   anonCaseCode = code;
   anonCaseData = data[0];
+  // Koden ska inte ligga kvar i fältet, där bakåtknappen kan visa den.
+  document.getElementById('access-code-input').value = '';
+  // Svarsrutan töms här och efter ett skickat svar, inte i renderAnonCase:
+  // den körs igen efter varje svar och tömde då nästa påbörjade meddelande.
+  document.getElementById('anon-reply-input').value = '';
   await renderAnonCase();
   show('view-anon-case');
   // Tråden ritades medan vyn var dold, och då har rullningen ingen
@@ -337,10 +408,10 @@ async function handleCodeEntry() {
 async function renderAnonCase() {
   const c = anonCaseData;
   document.getElementById('anon-token').textContent = c.wb_token;
-  document.getElementById('anon-cat').textContent = t('cat.' + c.category);
+  document.getElementById('anon-cat').textContent = tLabel('cat.', c.category);
   const sp = document.getElementById('anon-status');
-  sp.textContent = t('status.' + c.status);
-  sp.className = `status-pill s-${c.status}`;
+  sp.textContent = tLabel('status.', c.status);
+  sp.className = `status-pill s-${statusClass(c.status)}`;
 
   const cached = cachedAnonGallery(c.case_id);
   // Tills bilderna är hämtade visas filnamnen.
@@ -351,7 +422,6 @@ async function renderAnonCase() {
     whoInvolved: c.who_involved, whereHappened: c.where_happened,
     whenHappened: c.when_happened, otherActions: c.other_actions
   });
-  document.getElementById('anon-reply-input').value = '';
 
   if (!cached) refreshAnonGallery(c);
 }
@@ -383,13 +453,30 @@ async function refreshAnonGallery(c) {
   renderCaseFiles('anon-files', items);
 }
 
+// Lämnar ärendet och glömmer det. Tråden och koden töms, så att de inte
+// går att nå igen med bakåtknappen.
+function leaveAnonCase() {
+  forgetAnonCase();
+  show('view-anon-code-entry');
+}
+
+function forgetAnonCase() {
+  anonCaseCode = null;
+  anonCaseData = null;
+  anonGalleryCache = { caseId: null, items: null, at: 0 };
+  document.getElementById('anon-msgs').innerHTML = '';
+  document.getElementById('anon-reply-input').value = '';
+  renderCaseFiles('anon-files', []);
+}
+
 async function handleAnonReply() {
   const text = val('anon-reply-input');
   if (!text) return err('anon-reply-err', t('err.writeMessage'));
   setBusy('btn-anon-reply', true);
   const { data: ok, error } = await sb.rpc('add_anonymous_message', { p_code: anonCaseCode, p_text: text });
   setBusy('btn-anon-reply', false);
-  if (error || !ok) return err('anon-reply-err', t('err.replyFailed'));
+  if (error) return err('anon-reply-err', friendlyError(error));
+  if (!ok) return err('anon-reply-err', t('err.replyFailed'));
 
   sb.functions.invoke('notify', { body: { type: 'employee_reply', case_id: anonCaseData.case_id } });
 
@@ -400,7 +487,10 @@ async function handleAnonReply() {
 }
 
 // ── LOGIN (typ 2 & 3) ────────────────────────────────────────────
-function showEmpLogin() { show('view-emp-login'); }
+function showEmpLogin() {
+  if (me) { meType === 'admin' ? showAdminDash() : showEmpDash(); return; }
+  show('view-emp-login');
+}
 
 async function handleEmpLogin() {
   const email = val('emp-email');
@@ -411,14 +501,17 @@ async function handleEmpLogin() {
   const { error } = await sb.auth.signInWithPassword({ email, password: pw });
   setBusy('btn-emp-login', false);
 
-  if (error) return err('emp-err', error.message.includes('not confirmed') ? t('err.notConfirmed') : t('err.badCredentials'));
+  if (error) {
+    if (isNetworkError(error)) return err('emp-err', t('err.network'));
+    return err('emp-err', (error.message || '').includes('not confirmed') ? t('err.notConfirmed') : t('err.badCredentials'));
+  }
 }
 
 async function handleForgotPassword() {
   const email = val('emp-email');
   if (!email) return err('emp-err', t('err.enterEmailFirst'));
   const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.href });
-  if (error) return err('emp-err', error.message);
+  if (error) return err('emp-err', friendlyError(error));
   const elx = document.getElementById('emp-err');
   elx.textContent = t('common.resetLinkSent');
   elx.style.display = 'block';
@@ -437,11 +530,28 @@ async function handleSetNewPassword() {
   setBusy('btn-set-pw', true);
   const { error } = await sb.auth.updateUser({ password: pw });
   setBusy('btn-set-pw', false);
-  if (error) return err('reset-err', error.message);
+  if (error) return err('reset-err', isNetworkError(error) ? t('err.network') : error.message);
+
+  // Tidigare hände ingenting alls efter att lösenordet sparats: personen
+  // blev stående på formuläret utan att veta om det gått igenom.
+  passwordRecovery = false;
+  document.getElementById('new-pw').value = '';
+  document.getElementById('new-pw2').value = '';
+  if (me) {
+    meType === 'admin' ? await showAdminDash() : await showEmpDash();
+  } else {
+    const { data } = await sb.auth.getSession();
+    if (data && data.session) await loadUserContext(data.session);
+    else showEmpLogin();
+  }
+  toast(t('reset.success'));
 }
 
 // ── ADMIN LOGIN ───────────────────────────────────────────────
-function showAdminLogin() { show('view-admin-login'); }
+function showAdminLogin() {
+  if (me) { meType === 'admin' ? showAdminDash() : showEmpDash(); return; }
+  show('view-admin-login');
+}
 
 async function handleAdminLogin() {
   const email = val('admin-email');
@@ -451,15 +561,17 @@ async function handleAdminLogin() {
   setBusy('btn-admin-login', true);
   const { error } = await sb.auth.signInWithPassword({ email, password: pw });
   setBusy('btn-admin-login', false);
-  if (error) return err('admin-err', t('err.badCredentials'));
+  if (error) return err('admin-err', isNetworkError(error) ? t('err.network') : t('err.badCredentials'));
 }
 
 // ── NEW CASE / REPORT FORM (delas av alla tre typer) ────────────
+// Sätts när sessionen tagit slut mitt i en rapport, så att det som hunnit
+// skrivas finns kvar när personen loggat in igen.
+let resumeReport = false;
+
 async function showNewCase() {
-  clearPendingFiles();
-  document.getElementById('new-case-form').reset();
-  document.getElementById('nc-files-list').innerHTML = '';
-  document.getElementById('dept-detail-group').style.display = 'none';
+  if (resumeReport) resumeReport = false;
+  else resetReportFields();
 
   document.getElementById('reportform-subtitle').textContent =
     reportType === 'open' ? t('reportForm.subtitleOpen') : t('reportForm.subtitleAnon');
@@ -468,13 +580,21 @@ async function showNewCase() {
 }
 
 function handleReportFormBack() {
-  if (reportType === 'anonymous_code') { showLanding(); return; }
+  if (reportType === 'anonymous_code') { reportType = null; showLanding(); return; }
   if (me && meType === 'employee') { showEmpDash(); return; }
   show('view-report-type');
 }
 
 function resetReportForm() {
   reportType = null;
+  resetReportFields();
+}
+
+// Tömmer formuläret. Anropas när en rapport skickats, så att bakåtknappen
+// inte visar rapportens text igen. På en delad dator är det illa.
+function resetReportFields() {
+  document.getElementById('new-case-form').reset();
+  document.getElementById('dept-detail-group').style.display = 'none';
   clearPendingFiles();
 }
 
@@ -678,6 +798,17 @@ document.addEventListener('change', (e) => {
 
 // ── CREATE CASE (grenar per anmälartyp) ─────────────────────────
 async function handleCreateCase() {
+  // Formuläret kan nås med bakåtknappen efter utloggning, eller när
+  // anmälartypen redan nollställts. Utan spärrarna skickades en rapport
+  // utan typ, och databasen svarade med ett tekniskt fel.
+  if (!reportType) { startNewReport(); return; }
+  if (reportType !== 'anonymous_code' && !me) {
+    resumeReport = true;
+    showEmpLogin();
+    err('emp-err', t('err.sessionExpired'));
+    return;
+  }
+
   const subject  = val('case-subject');
   const category = val('cat-sel');
   const dept     = val('dept-sel');
@@ -711,7 +842,7 @@ async function handleCreateCase() {
     });
     if (error || !data || !data[0]) {
       setBusy('btn-create-case', false);
-      return err('nc-err', (error && error.message) || t('err.generic'));
+      return err('nc-err', error ? friendlyError(error) : t('err.generic'));
     }
 
     const row = data[0];
@@ -720,6 +851,7 @@ async function handleCreateCase() {
     if (pendingFiles.length) await uploadPendingFiles(row.case_id);
     setBusy('btn-create-case', false);
     sb.functions.invoke('notify', { body: { type: 'new_case', case_id: row.case_id } });
+    resetReportFields();
     showCodeConfirm(row.access_code, row.wb_token);
     return;
   }
@@ -739,7 +871,7 @@ async function handleCreateCase() {
   });
   if (error || !data || !data[0]) {
     setBusy('btn-create-case', false);
-    return err('nc-err', (error && error.message) || t('err.generic'));
+    return err('nc-err', error ? friendlyError(error) : t('err.generic'));
   }
 
   const newCaseId = data[0].case_id;
@@ -759,13 +891,31 @@ function showCodeConfirm(code, token) {
   show('view-code-confirm');
 }
 
-function copyAccessCode() {
+async function copyAccessCode() {
   if (!lastAccessCode) return;
-  navigator.clipboard.writeText(lastAccessCode).catch(() => {});
+  const btn = document.getElementById('btn-copy-code');
+  // Tidigare hände ingenting synligt, så det gick inte att veta om koden
+  // faktiskt hamnat i urklipp.
+  try {
+    await navigator.clipboard.writeText(lastAccessCode);
+    btn.textContent = t('codeConfirm.copied');
+  } catch (e) {
+    // Urklipp kan vara blockerat. Markera koden så att den går att kopiera för hand.
+    const range = document.createRange();
+    range.selectNodeContents(document.getElementById('code-display-value'));
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    btn.textContent = t('codeConfirm.copyFailed');
+  }
+  clearTimeout(copyAccessCode.timer);
+  copyAccessCode.timer = setTimeout(() => { btn.textContent = t('codeConfirm.copy'); }, 2500);
 }
 
 function handleCodeConfirmDone() {
   lastAccessCode = null;
+  document.getElementById('code-display-value').textContent = '';
+  document.getElementById('code-confirm-token').textContent = '';
   resetReportForm();
   showLanding();
 }
@@ -805,12 +955,12 @@ async function showEmpDash(filter) {
     const div = el('div', `case-card${unread ? ' unread' : ''}`);
     div.innerHTML = `
       <div class="case-header">
-        <span class="token">${c.anonymous_token}</span>
-        <span class="status-pill s-${c.status}">${t('status.' + c.status)}</span>
+        <span class="token">${esc(c.anonymous_token)}</span>
+        <span class="status-pill s-${statusClass(c.status)}">${esc(tLabel('status.', c.status))}</span>
       </div>
       <div class="case-subject-line">${esc(c.subject || '—')}</div>
       <div class="case-meta">
-        <span>${t('cat.' + c.category)}</span>
+        <span>${esc(tLabel('cat.', c.category))}</span>
         <span>${fmt(c.created_at)}</span>
       </div>
       ${waitingNote ? `<div class="waiting-note">${waitingNote}</div>` : ''}
@@ -824,6 +974,10 @@ async function showEmpDash(filter) {
 async function openCaseEmp(caseId) {
   activeCaseId = caseId;
   const token = show('view-case-emp');
+  // Töms direkt när ärendet öppnas. Tidigare tömdes rutan först när
+  // meddelandena laddats klart, och på en långsam uppkoppling försvann
+  // då det personen hunnit börja skriva.
+  document.getElementById('emp-reply-input').value = '';
 
   const [{ data: c }, { data: msgs }, { data: attachments }] = await Promise.all([
     sb.from('cases').select('*').eq('id', caseId).single(),
@@ -836,10 +990,10 @@ async function openCaseEmp(caseId) {
   if (!c) { err('emp-reply-err', t('err.caseLoadFailed')); return; }
 
   document.getElementById('c-token').textContent = c.anonymous_token;
-  document.getElementById('c-cat').textContent   = t('cat.' + c.category);
+  document.getElementById('c-cat').textContent   = tLabel('cat.', c.category);
   const sp = document.getElementById('c-status');
-  sp.textContent = t('status.' + c.status);
-  sp.className   = `status-pill s-${c.status}`;
+  sp.textContent = tLabel('status.', c.status);
+  sp.className   = `status-pill s-${statusClass(c.status)}`;
   activeCaseExtra = {
     subject: c.subject, category: c.category, department: c.department, departmentDetail: c.department_detail,
     whoInvolved: c.who_involved, whereHappened: c.where_happened,
@@ -850,7 +1004,6 @@ async function openCaseEmp(caseId) {
   if (token !== navToken) return;
   renderCaseFiles('c-files', files);
   await renderMsgs('emp-msgs', msgs || [], 'employee', activeCaseExtra);
-  document.getElementById('emp-reply-input').value = '';
 }
 
 async function handleEmpReply() {
@@ -859,7 +1012,7 @@ async function handleEmpReply() {
   setBusy('btn-emp-reply', true);
   const { error } = await sb.from('messages').insert({ case_id: activeCaseId, from_role: 'employee', text });
   setBusy('btn-emp-reply', false);
-  if (error) return err('emp-reply-err', error.message);
+  if (error) return err('emp-reply-err', friendlyError(error));
 
   sb.functions.invoke('notify', { body: { type: 'employee_reply', case_id: activeCaseId } });
 
@@ -919,13 +1072,13 @@ async function showAdminDash(filter) {
     const div = el('div', `case-card${unread ? ' unread' : ''}`);
     div.innerHTML = `
       <div class="case-header">
-        <span class="token">${c.anonymous_token}</span>
-        <span class="status-pill s-${c.status}">${t('status.' + c.status)}</span>
+        <span class="token">${esc(c.anonymous_token)}</span>
+        <span class="status-pill s-${statusClass(c.status)}">${esc(tLabel('status.', c.status))}</span>
       </div>
       <div class="case-subject-line">${esc(c.subject || '—')}</div>
       <div class="case-meta">
         <span class="type-tag">${esc(typeLabel)}</span>
-        <span>${t('cat.' + c.category)}</span>
+        <span>${esc(tLabel('cat.', c.category))}</span>
         <span>${fmt(c.created_at)}</span>
         <span>${msgs.length} ${t('common.messages')}</span>
       </div>
@@ -940,6 +1093,11 @@ async function showAdminDash(filter) {
 async function openCaseAdmin(caseId) {
   activeCaseId = caseId;
   const token = show('view-case-admin');
+  // Töms direkt när ärendet öppnas. Tidigare tömdes rutan först när
+  // meddelandena laddats klart, och på en långsam uppkoppling försvann
+  // då det personen hunnit börja skriva.
+  document.getElementById('admin-reply-input').value = '';
+  document.getElementById('ac-note-input').value = '';
 
   const [{ data: c }, { data: msgs }, { data: attachments }] = await Promise.all([
     // employee_id är aldrig med i select — anonymitet upprätthålls på query-nivå
@@ -953,12 +1111,13 @@ async function openCaseAdmin(caseId) {
 
   document.getElementById('ac-subject').textContent = c.subject || '';
   document.getElementById('ac-token').textContent = c.anonymous_token;
-  document.getElementById('ac-cat').textContent   = t('cat.' + c.category);
+  document.getElementById('ac-cat').textContent   = tLabel('cat.', c.category);
   const deptDetailLabel = c.department_detail
     ? (translations[currentLang]['staber.' + c.department_detail] || c.department_detail)
     : '';
-  document.getElementById('ac-dept').textContent = t('dept.' + c.department) + (deptDetailLabel ? ' – ' + deptDetailLabel : '');
+  document.getElementById('ac-dept').textContent = tLabel('dept.', c.department) + (deptDetailLabel ? ' – ' + deptDetailLabel : '');
   document.getElementById('ac-status-sel').value  = c.status;
+  activeCaseStatus = c.status;
 
   const reporterInfoEl = document.getElementById('ac-reporter-info');
   const anonNoticeEl   = document.getElementById('ac-anon-notice');
@@ -980,9 +1139,7 @@ async function openCaseAdmin(caseId) {
   if (token !== navToken) return;
   renderCaseFiles('ac-files', files);
   await renderMsgs('admin-msgs', msgs || [], 'admin', activeCaseExtra);
-  document.getElementById('admin-reply-input').value = '';
 
-  document.getElementById('ac-note-input').value = '';
   applyNotesPanel();
   await loadNotes(caseId);
 }
@@ -993,7 +1150,7 @@ async function handleAdminReply() {
   setBusy('btn-admin-reply', true);
   const { error } = await sb.from('messages').insert({ case_id: activeCaseId, from_role: 'admin', text, sender_id: me.id });
   setBusy('btn-admin-reply', false);
-  if (error) return err('admin-reply-err', error.message);
+  if (error) return err('admin-reply-err', friendlyError(error));
 
   // typ 1 (helt anonym) har ingen e-post att notifiera
   const { data: c } = await sb.from('cases').select('reporter_type').eq('id', activeCaseId).single();
@@ -1008,6 +1165,10 @@ async function handleAdminReply() {
   await renderMsgs('admin-msgs', msgs || [], 'admin', activeCaseExtra);
 }
 
+// Senast sparade status. Om en ändring misslyckas visar listan det här
+// igen, i stället för ett värde som aldrig sparades.
+let activeCaseStatus = null;
+
 async function handleStatusChange() {
   const sel = document.getElementById('ac-status-sel');
   const status = sel.value;
@@ -1016,8 +1177,11 @@ async function handleStatusChange() {
   sel.disabled = false;
   if (error) {
     console.error('Kunde inte uppdatera status:', error);
+    sel.value = activeCaseStatus;
     err('admin-reply-err', t('err.statusUpdateFailed'));
+    return;
   }
+  activeCaseStatus = status;
 }
 
 // ── INTERNA ANTECKNINGAR (endast admin) ───────────────────────
@@ -1196,7 +1360,7 @@ async function renderMsgs(id, messages, perspective, caseExtra) {
 
     wrap.innerHTML = `
       <div class="bubble${isFirst ? ' bubble-report' : ''}">
-        <div class="bubble-sender">${senderLabel}</div>
+        <div class="bubble-sender">${esc(senderLabel)}</div>
         <div class="bubble-text${isFirst ? ' bubble-cta' : ''}">${isFirst ? `📄 ${t('common.clickToReadReport')}` : esc(m.text)}</div>
         <div class="bubble-time">${fmt(m.created_at)}</div>
       </div>`;
@@ -1237,8 +1401,8 @@ function showReportModal(title, text, createdAt, caseExtra) {
 
   const blocks = [];
   if (e.subject)    blocks.push([t('reportForm.subject'), e.subject]);
-  if (e.category)   blocks.push([t('reportForm.category'), t('cat.' + e.category)]);
-  if (e.department)  blocks.push([t('reportForm.department'), t('dept.' + e.department) + (deptDetailLabel ? ' – ' + deptDetailLabel : '')]);
+  if (e.category)   blocks.push([t('reportForm.category'), tLabel('cat.', e.category)]);
+  if (e.department)  blocks.push([t('reportForm.department'), tLabel('dept.', e.department) + (deptDetailLabel ? ' – ' + deptDetailLabel : '')]);
   blocks.push([t('reportForm.message'), text]);
   if (e.whoInvolved)    blocks.push([t('reportForm.qWho'), e.whoInvolved]);
   if (e.whereHappened)  blocks.push([t('reportForm.qWhere'), e.whereHappened]);
@@ -1377,6 +1541,35 @@ function caseFileItem(a) {
   return chip;
 }
 
+// ── ENTER I FORMULÄR ──────────────────────────────────────────
+// Enter i ett enradsfält skickar formuläret, som användare förväntar sig.
+// Textrutor påverkas inte: där betyder Enter ny rad. Knappens låsning
+// respekteras, så att Enter inte skickar två gånger under ett anrop.
+const ENTER_SUBMITS = {
+  'access-code-input': ['btn-code-entry', () => handleCodeEntry()],
+  'emp-email':  ['btn-emp-login', () => handleEmpLogin()],
+  'emp-pw':     ['btn-emp-login', () => handleEmpLogin()],
+  'admin-email': ['btn-admin-login', () => handleAdminLogin()],
+  'admin-pw':    ['btn-admin-login', () => handleAdminLogin()],
+  'reg-name':  ['btn-send-code', () => handleSendCode()],
+  'reg-email': ['btn-send-code', () => handleSendCode()],
+  'reg-phone': ['btn-send-code', () => handleSendCode()],
+  'reg-pw':    ['btn-send-code', () => handleSendCode()],
+  'reg-pw2':   ['btn-send-code', () => handleSendCode()],
+  'new-pw':  ['btn-set-pw', () => handleSetNewPassword()],
+  'new-pw2': ['btn-set-pw', () => handleSetNewPassword()],
+};
+
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || e.isComposing) return;
+  const entry = e.target && ENTER_SUBMITS[e.target.id];
+  if (!entry) return;
+  e.preventDefault();
+  const btn = document.getElementById(entry[0]);
+  if (btn && btn.disabled) return;
+  entry[1]();
+});
+
 // ── HELPERS ───────────────────────────────────────────────────
 function el(tag, className) { const e = document.createElement(tag); if (className) e.className = className; return e; }
 function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
@@ -1386,7 +1579,49 @@ function fmt(iso) {
     ' ' + d.toLocaleTimeString(currentLang === 'en' ? 'en-GB' : 'sv-SE', { hour: '2-digit', minute: '2-digit' });
 }
 function val(id) { return (document.getElementById(id).value || '').trim(); }
-function err(id, msg) { const e = document.getElementById(id); if (!e) return; e.textContent = msg; e.style.display = 'block'; }
+function err(id, msg) {
+  const e = document.getElementById(id);
+  if (!e) return;
+  // Återställningslänkens bekräftelse färgar samma ruta grön. Utan den här
+  // nollställningen blev nästa felmeddelande också grönt.
+  e.style.color = ''; e.style.background = ''; e.style.borderColor = '';
+  e.textContent = msg;
+  e.style.display = 'block';
+}
+
+// Tekniska fel som "TypeError: Failed to fetch" eller texter från
+// databasens behörighetsregler betyder ingenting för en användare.
+// Nätverksfel får en egen text, allt annat en allmän. Detaljerna
+// hamnar i konsolen för felsökning.
+function isNetworkError(error) {
+  const msg = String((error && error.message) || '');
+  return !!error && (error.status === 0 || /failed to fetch|networkerror|network request failed|load failed/i.test(msg));
+}
+
+function friendlyError(error) {
+  console.error('Fel från servern:', error);
+  return isNetworkError(error) ? t('err.network') : t('err.generic');
+}
+
+// Status används som del av ett klassnamn och får bara vara kända värden.
+function statusClass(status) {
+  return ['open', 'investigating', 'resolved'].includes(status) ? status : 'open';
+}
+
+// Kort bekräftelse längst ner på skärmen, t.ex. efter byte av lösenord.
+function toast(msg) {
+  let box = document.getElementById('toast');
+  if (!box) {
+    box = el('div', 'toast');
+    box.id = 'toast';
+    box.setAttribute('role', 'status');
+    document.body.appendChild(box);
+  }
+  box.textContent = msg;
+  box.classList.add('show');
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => box.classList.remove('show'), 3500);
+}
 function hideError(id) { const e = document.getElementById(id); if (e) e.style.display = 'none'; }
 function clearErrors() { document.querySelectorAll('.error-msg').forEach(e => { e.style.display = 'none'; }); }
 function setBusy(btnId, busy) {

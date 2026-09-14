@@ -605,6 +605,17 @@ a:hover { text-decoration: underline; }
 .law-footer { margin-top: 40px; padding: 18px 22px; background: var(--bg-alt); border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; color: var(--muted); text-align: center; }
 
 /* ── RESPONSIVE ──────────────────────────── */
+/* ── BEKRÄFTELSE (toast) ──────────────────── */
+.toast {
+  position: fixed; left: 50%; bottom: 24px; z-index: 700;
+  max-width: calc(100% - 32px); padding: 11px 18px; border-radius: var(--radius);
+  background: var(--navy); color: #fff; font-size: 14px; font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0,0,0,.25);
+  opacity: 0; transform: translate(-50%, 16px); pointer-events: none;
+  transition: opacity .2s, transform .2s;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
 @media (max-width: 900px) {
   /* Två kolumner ryms inte — anteckningarna hamnar under chatten. */
   #view-case-admin.notes-open .case-split { grid-template-columns: minmax(0, 1fr); }
@@ -617,7 +628,25 @@ a:hover { text-decoration: underline; }
   .form-row { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {
-  .admin-link { display: none; }
+  /* Huvudet hade skrivbordsavstånd, så handläggarens namn och titel
+     sköt det bredare än skärmen. Länken "HR & Admin" skulle döljas här,
+     men skriptet satte den synlig och den bröts på två rader. Den får
+     vara kvar, annars kan en handläggare inte logga in från mobilen. */
+  #header { padding: 0 12px; }
+  .header-actions { gap: 8px; }
+  .logo { gap: 8px; }
+  .logo-img { width: 34px; height: 34px; }
+  .logo-jensen { font-size: 14px; letter-spacing: 1.5px; }
+  .logo-subtitle { font-size: 9px; letter-spacing: 1.2px; }
+  .admin-link { padding: 6px 9px; font-size: 11px; white-space: nowrap; }
+  .header-actions .btn { padding: 6px 10px; font-size: 11px; white-space: nowrap; }
+  /* Namn och titel står redan överst på dashboarden. I huvudet fick de
+     inte plats bredvid utloggningsknappen. !important behövs eftersom
+     skriptet sätter synligheten direkt på elementet. */
+  #header-profile { display: none !important; }
+  /* Statusflikarna rullar i sidled i stället för att göra sidan bredare. */
+  .sub-tabs { overflow-x: auto; scrollbar-width: none; }
+  .sub-tab { padding: 10px 14px; white-space: nowrap; flex-shrink: 0; }
   .landing-panel { padding: 40px 20px; }
   .landing-panel h1 { font-size: 26px; }
   .form-wrap, .dash-wrap, .chat-wrap { padding: 28px 20px; }

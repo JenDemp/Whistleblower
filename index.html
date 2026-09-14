@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>JENSEN Whistleblower</title>
-  <link rel="stylesheet" href="style.css?v=20260913c">
+  <link rel="stylesheet" href="style.css?v=20260914a">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.46.0/dist/tabler-icons.min.css">
 </head>
 <body>
@@ -391,7 +391,7 @@
   <div class="view" id="view-anon-case">
     <div class="chat-wrap">
       <div class="chat-head">
-        <button class="btn-back" onclick="show('view-anon-code-entry')" data-i18n="back.code">← Tillbaka</button>
+        <button class="btn-back" onclick="leaveAnonCase()" data-i18n="back.code">← Tillbaka</button>
         <div class="chat-head-info">
           <div><span data-i18n="anonCase.case">Ärende:</span> <span id="anon-token" class="token"></span></div>
         </div>
@@ -564,7 +564,7 @@
         Detta är den enda vägen tillbaka till ditt ärende. Vi har inte sparat din e-post, så koden kan inte återställas om du tappar bort den.
       </p>
       <div class="code-display" id="code-display-value"></div>
-      <button class="btn btn-outline-navy btn-full" onclick="copyAccessCode()" data-i18n="codeConfirm.copy" style="margin-bottom:12px;">Kopiera kod</button>
+      <button id="btn-copy-code" class="btn btn-outline-navy btn-full" onclick="copyAccessCode()" data-i18n="codeConfirm.copy" style="margin-bottom:12px;">Kopiera kod</button>
       <p style="text-align:center;margin-bottom:16px;"><span data-i18n="codeConfirm.caseNr">Ärendenummer:</span> <strong id="code-confirm-token" class="token"></strong></p>
       <button class="btn btn-gold btn-full" onclick="handleCodeConfirmDone()" data-i18n="codeConfirm.done">Jag har sparat koden →</button>
     </div>
@@ -713,7 +713,7 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.js"></script>
-<script src="i18n.js?v=20260913c"></script>
-<script src="app.js?v=20260913c"></script>
+<script src="i18n.js?v=20260914a"></script>
+<script src="app.js?v=20260914a"></script>
 </body>
 </html>

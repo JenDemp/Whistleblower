@@ -121,6 +121,7 @@ const translations = {
     'reset.newPw2': 'Bekräfta lösenord',
     'reset.newPw2Ph': 'Upprepa lösenordet',
     'reset.submit': 'Spara nytt lösenord',
+    'reset.success': 'Ditt lösenord är ändrat.',
     'reset.cancel': 'Avbryt och gå till startsidan',
 
     'adminLogin.title': 'Admin-inloggning',
@@ -206,6 +207,8 @@ const translations = {
     'codeConfirm.title': 'Spara din åtkomstkod!',
     'codeConfirm.subtitle': 'Detta är den enda vägen tillbaka till ditt ärende. Vi har inte sparat din e-post, så koden kan inte återställas om du tappar bort den.',
     'codeConfirm.copy': 'Kopiera kod',
+    'codeConfirm.copyFailed': 'Koden är markerad. Kopiera den med Ctrl+C.',
+    'codeConfirm.copied': 'Kopierad ✓',
     'codeConfirm.caseNr': 'Ärendenummer:',
     'codeConfirm.done': 'Jag har sparat koden →',
 
@@ -269,6 +272,8 @@ const translations = {
     'err.fileType': '"{name}" går inte att bifoga. Tillåtna format är JPG, PNG, GIF och WEBP.',
     'err.fileWouldExceed': '"{name}" får inte plats. Bilderna får vara högst 50 MB tillsammans.',
     'err.generic': 'Något gick fel. Försök igen.',
+    'err.sessionExpired': 'Du är inte längre inloggad. Logga in igen, så finns din rapport kvar.',
+    'err.network': 'Kunde inte nå tjänsten. Kontrollera din internetanslutning och försök igen.',
     'err.notConfirmed': 'Verifiera din e-post först. Klicka på länken vi skickade dig.',
     'err.badCredentials': 'Felaktig e-postadress eller lösenord.',
     'err.enterEmailFirst': 'Ange din e-postadress ovan och klicka sedan på "Glömt lösenord?".',
@@ -402,6 +407,7 @@ const translations = {
     'reset.newPw2': 'Confirm password',
     'reset.newPw2Ph': 'Repeat the password',
     'reset.submit': 'Save new password',
+    'reset.success': 'Your password has been changed.',
     'reset.cancel': 'Cancel and go to the start page',
 
     'adminLogin.title': 'Admin login',
@@ -487,6 +493,8 @@ const translations = {
     'codeConfirm.title': 'Save your access code!',
     'codeConfirm.subtitle': 'This is the only way back into your case. We have not stored your email, so the code cannot be recovered if you lose it.',
     'codeConfirm.copy': 'Copy code',
+    'codeConfirm.copyFailed': 'The code is selected. Copy it with Ctrl+C.',
+    'codeConfirm.copied': 'Copied ✓',
     'codeConfirm.caseNr': 'Case number:',
     'codeConfirm.done': 'I have saved the code →',
 
@@ -550,6 +558,8 @@ const translations = {
     'err.fileType': '"{name}" cannot be attached. Allowed formats are JPG, PNG, GIF and WEBP.',
     'err.fileWouldExceed': '"{name}" does not fit. The images may be at most 50 MB in total.',
     'err.generic': 'Something went wrong. Please try again.',
+    'err.sessionExpired': 'You are no longer logged in. Log in again and your report will still be there.',
+    'err.network': 'Could not reach the service. Check your internet connection and try again.',
     'err.notConfirmed': 'Please verify your email first. Click the link we sent you.',
     'err.badCredentials': 'Incorrect email or password.',
     'err.enterEmailFirst': 'Enter your email address above, then click "Forgot password?".',
@@ -570,6 +580,13 @@ function t(key, vars) {
   let str = (translations[currentLang] && translations[currentLang][key]) || key;
   if (vars) Object.keys(vars).forEach(k => { str = str.replace(`{${k}}`, vars[k]); });
   return str;
+}
+
+// Etikett för ett värde från databasen, t.ex. en kategori. Okända värden
+// visas som de är, i stället för som en nyckel som "cat.xyz".
+function tLabel(prefix, value) {
+  const hit = translations[currentLang] && translations[currentLang][prefix + value];
+  return hit !== undefined ? hit : String(value == null ? '' : value);
 }
 
 function applyLang() {
