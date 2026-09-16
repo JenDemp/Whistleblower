@@ -605,6 +605,29 @@ a:hover { text-decoration: underline; }
 /* ── LAW CARDS ───────────────────────────── */
 .skydd-panel { text-align: left; max-width: 1000px; }
 .skydd-panel h1, .skydd-panel .lead { text-align: center; }
+
+/* ── EXTERNA RAPPORTERINGSKANALER ───────── */
+.external-contact-card { margin-top: 10px; }
+.external-panel { max-width: 1000px; text-align: left; }
+.external-panel h1, .external-panel .lead { text-align: center; }
+.external-tip { max-width: 720px; margin: 0 auto 24px; }
+.external-search {
+  display: block; width: 100%; max-width: 520px; margin: 0 auto 32px; padding: 11px 16px;
+  border: 1.5px solid var(--border); border-radius: var(--radius); font-size: 15px; font-family: inherit;
+}
+.external-search:focus { outline: none; border-color: var(--gold-dark); box-shadow: 0 0 0 3px rgba(201,163,95,.15); }
+.external-panel h2 { font-size: 20px; color: var(--navy); margin: 8px 0 14px; }
+.external-sub { color: var(--muted); font-size: 14px; margin: -6px 0 14px; }
+.external-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 36px; }
+.external-card {
+  display: flex; flex-direction: column; gap: 8px;
+  background: var(--card); border: 1.5px solid var(--border); border-radius: 10px; padding: 18px 20px;
+}
+.external-card h3 { font-size: 15.5px; font-weight: 700; color: var(--navy); line-height: 1.35; }
+.external-card p { font-size: 13.5px; color: var(--muted); line-height: 1.6; flex: 1; }
+.external-link { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 700; color: var(--navy); }
+.external-link i { font-size: 15px; }
+.external-empty { text-align: center; color: var(--muted); padding: 24px; }
 .law-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 40px; }
 .law-card { background: var(--card); border: 1.5px solid var(--border); border-radius: 10px; padding: 24px 22px; box-shadow: var(--shadow); }
 .law-icon { font-size: 28px; margin-bottom: 12px; color: var(--navy); }

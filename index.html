@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>JENSEN Whistleblower</title>
-  <link rel="stylesheet" href="style.css?v=20260916b">
+  <link rel="stylesheet" href="style.css?v=20260916c">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.46.0/dist/tabler-icons.min.css">
 </head>
 <body>
@@ -61,6 +61,12 @@
 
         <h2 data-i18n="landing.anonTitle">Anonymitet och sekretess</h2>
         <p data-i18n="landing.anonP1">När du lämnar en rapport kan du välja att vara helt anonym eller att uppge dina kontaktuppgifter. Oavsett vad du väljer behandlas ditt ärende under högsta sekretess. Du får mer information om dina val när du klickar dig vidare till "Skapa ny rapport".</p>
+
+        <h2 data-i18n="landing.externalTitle">Externa rapporteringskanaler</h2>
+        <p>
+          <span data-i18n="landing.externalP1">Du kan också välja att rapportera till en behörig myndighet i stället för, eller utöver, vår interna kanal. Myndigheterna har egna rapporteringskanaler för sina ansvarsområden, och du kan även rapportera till vissa av EU:s institutioner. Skyddet mot repressalier gäller även när du rapporterar externt.</span>
+          <a href="#" onclick="showLanding('externa');return false;" data-i18n="landing.externalLink">Se alla externa rapporteringskanaler →</a>
+        </p>
       </div>
 
       <div class="landing-sidebar">
@@ -72,6 +78,10 @@
           <a href="#" class="direct-contact-card" onclick="showLanding('kontakter');return false;">
             <i class="ti ti-device-mobile direct-contact-icon"></i>
             <span class="direct-contact-text" data-i18n="landing.channelDirect">Vill du prata med någon direkt istället? Klicka här</span>
+          </a>
+          <a href="#" class="direct-contact-card external-contact-card" onclick="showLanding('externa');return false;">
+            <i class="ti ti-building-bank direct-contact-icon" aria-hidden="true"></i>
+            <span class="direct-contact-text" data-i18n="landing.channelExternal">Vill du rapportera till en myndighet? Se externa kanaler</span>
           </a>
         </div>
       </div>
@@ -105,6 +115,31 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Panel: Externa rapporteringskanaler -->
+    <div class="tab-panel" id="panel-externa">
+      <div class="landing-panel external-panel">
+        <button class="btn-back" onclick="showLanding()" data-i18n="back.landing">← Tillbaka</button>
+        <h1 data-i18n="external.title">Externa rapporteringskanaler</h1>
+        <p class="lead" data-i18n="external.lead">Du kan rapportera direkt till en myndighet som ansvarar för det område ditt ärende gäller. Välj den myndighet som passar och följ länken till deras rapporteringskanal.</p>
+        <div class="notice notice-amber external-tip" data-i18n="external.tip">Är du osäker på vilken myndighet som är rätt? Arbetsmiljöverket tar emot rapporter om missförhållanden som inte hör till någon annan myndighets område.</div>
+
+        <input type="search" id="external-search" class="external-search" data-i18n-placeholder="external.searchPh" data-i18n-aria="external.searchPh" placeholder="Sök myndighet eller område, t.ex. miljö" aria-label="Sök myndighet eller område, t.ex. miljö">
+
+        <section id="external-authorities-section">
+          <h2 data-i18n="external.authorities">Svenska myndigheter</h2>
+          <div id="external-authorities" class="external-grid"></div>
+        </section>
+
+        <section id="external-eu-section">
+          <h2 data-i18n="external.eu">EU:s institutioner</h2>
+          <p class="external-sub" data-i18n="external.euIntro">Du kan även rapportera direkt till EU:s institutioner, till exempel:</p>
+          <div id="external-eu" class="external-grid"></div>
+        </section>
+
+        <p id="external-empty" class="external-empty" data-i18n="external.noMatch" style="display:none;">Ingen myndighet matchar din sökning.</p>
+      </div>
     </div>
 
     <!-- Panel: Dina rättigheter -->
@@ -711,7 +746,8 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.js"></script>
-<script src="i18n.js?v=20260916b"></script>
-<script src="app.js?v=20260916b"></script>
+<script src="i18n.js?v=20260916c"></script>
+<script src="app.js?v=20260916c"></script>
+<script src="external-channels.js?v=20260916c"></script>
 </body>
 </html>

@@ -273,6 +273,7 @@ function onLangChange() {
   // därför kvar på gamla språket om vi inte ritar om dem.
   if (document.getElementById('view-case-admin').style.display === 'block') renderNotes();
   if (pendingFiles.length) renderFilesList();
+  if (typeof renderExternalChannels === 'function') renderExternalChannels();
 }
 
 // ── REPORT TYPE SELECTION ───────────────────────────────────────
