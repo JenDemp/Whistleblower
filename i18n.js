@@ -220,7 +220,6 @@ const translations = {
 
     'notes.title': 'Anteckningar',
     'notes.panelTitle': 'Interna anteckningar',
-    'notes.tooltip': 'Här kan du lägga till anteckningar',
     'notes.onlyAdmins': 'Syns bara för HR och administratörer. Visselblåsaren kan aldrig läsa dem.',
     'notes.placeholder': 'Skriv en anteckning…',
     'notes.save': 'Spara anteckning',
@@ -505,7 +504,6 @@ const translations = {
 
     'notes.title': 'Notes',
     'notes.panelTitle': 'Internal notes',
-    'notes.tooltip': 'Here you can add notes',
     'notes.onlyAdmins': 'Visible only to HR and administrators. The reporter can never read them.',
     'notes.placeholder': 'Write a note…',
     'notes.save': 'Save note',

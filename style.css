@@ -553,7 +553,6 @@ a:hover { text-decoration: underline; }
   font-size: 17px; line-height: 1; padding: 4px; border-radius: var(--radius);
 }
 .notes-panel-close:hover { background: var(--bg-alt); color: var(--text); }
-.notes-panel-hint { font-size: 12px; color: var(--muted); line-height: 1.5; margin: 6px 0 14px; }
 
 .notes-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px; }
 .notes-empty { font-size: 13px; color: var(--muted); text-align: center; padding: 28px 8px; }

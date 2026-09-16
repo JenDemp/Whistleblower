@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>JENSEN Whistleblower</title>
-  <link rel="stylesheet" href="style.css?v=20260916a">
+  <link rel="stylesheet" href="style.css?v=20260916b">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.46.0/dist/tabler-icons.min.css">
 </head>
 <body>
@@ -658,7 +658,7 @@
           <div class="notes-bar">
             <span class="notes-info" tabindex="0" role="note" aria-describedby="notes-tip">
               <i class="ti ti-info-circle" aria-hidden="true"></i>
-              <span class="notes-tip" id="notes-tip" data-i18n="notes.tooltip">Här kan du lägga till anteckningar</span>
+              <span class="notes-tip" id="notes-tip" data-i18n="notes.onlyAdmins">Syns bara för HR och administratörer. Visselblåsaren kan aldrig läsa dem.</span>
             </span>
             <button type="button" id="btn-notes-toggle" class="btn-notes-toggle"
                     onclick="toggleNotes()" aria-expanded="false" aria-controls="ac-notes-panel">
@@ -695,9 +695,6 @@
               <i class="ti ti-x" aria-hidden="true"></i>
             </button>
           </div>
-          <p class="notes-panel-hint" data-i18n="notes.onlyAdmins">
-            Syns bara för HR och administratörer. Visselblåsaren kan aldrig läsa dem.
-          </p>
 
           <div class="notes-list" id="ac-notes-list"></div>
 
@@ -714,7 +711,7 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.js"></script>
-<script src="i18n.js?v=20260916a"></script>
-<script src="app.js?v=20260916a"></script>
+<script src="i18n.js?v=20260916b"></script>
+<script src="app.js?v=20260916b"></script>
 </body>
 </html>
