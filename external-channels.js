@@ -155,6 +155,34 @@ const EXTERNAL_EU = [
   },
 ];
 
+// Långa sammansatta namn saknar mellanslag och kan därför inte brytas,
+// så de trängde ut logotypen. Mjuka bindestreck (\u00AD) mellan ordleden
+// låter namnet brytas där det är naturligt, och syns bara när raden
+// faktiskt bryts. Namnet i listan ovan hålls rent, så sökningen fungerar
+// som vanligt.
+const NAME_BREAKS = {
+  'Arbetsmiljöverket': 'Arbets\u00ADmiljö\u00ADverket',
+  'Ekobrottsmyndigheten': 'Ekobrotts\u00ADmyndigheten',
+  'Elsäkerhetsverket': 'El\u00ADsäkerhets\u00ADverket',
+  'Fastighetsmäklarinspektionen': 'Fastighets\u00ADmäklar\u00ADinspektionen',
+  'Finansinspektionen': 'Finans\u00ADinspektionen',
+  'Folkhälsomyndigheten': 'Folkhälso\u00ADmyndigheten',
+  'Integritetsskyddsmyndigheten': 'Integritets\u00ADskydds\u00ADmyndigheten',
+  'Kemikalieinspektionen': 'Kemikalie\u00ADinspektionen',
+  'Konkurrensverket': 'Konkurrens\u00ADverket',
+  'Konsumentverket': 'Konsument\u00ADverket',
+  'Livsmedelsverket': 'Livsmedels\u00ADverket',
+  'Läkemedelsverket': 'Läkemedels\u00ADverket',
+  'Naturvårdsverket': 'Naturvårds\u00ADverket',
+  'Revisorsinspektionen': 'Revisors\u00ADinspektionen',
+  'Skogsstyrelsen': 'Skogs\u00ADstyrelsen',
+  'Spelinspektionen': 'Spel\u00ADinspektionen',
+  'Strålsäkerhetsmyndigheten': 'Strål\u00ADsäkerhets\u00ADmyndigheten',
+  'Transportstyrelsen': 'Transport\u00ADstyrelsen',
+  'OLAF – Europeiska byrån för bedrägeribekämpning': 'OLAF – Europeiska byrån för bedrägeri\u00ADbekämpning',
+  'ESMA – Europeiska värdepappers- och marknadsmyndigheten': 'ESMA – Europeiska värdepappers- och marknads\u00ADmyndigheten',
+};
+
 // Kort med namn, logotyp, områden och länk. Allt byggs med textContent:
 // inget här ska tolkas som HTML.
 //
@@ -166,7 +194,7 @@ function externalCard(name, text, url, linkKey, logo) {
   const card = el('div', 'external-card');
   const head = el('div', 'external-card-head');
   const h = el('h3');
-  h.textContent = name;
+  h.textContent = NAME_BREAKS[name] || name;
   head.appendChild(h);
   if (logo) {
     const img = el('img', 'external-logo');
