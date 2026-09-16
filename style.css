@@ -440,6 +440,10 @@ a:hover { text-decoration: underline; }
 .chat-head { display: flex; align-items: center; gap: 16px; padding-bottom: 16px; border-bottom: 1.5px solid var(--border); margin-bottom: 16px; flex-wrap: wrap; }
 .chat-head-info { flex: 1; font-size: 14px; line-height: 1.7; }
 .chat-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+/* Status och anteckningar staplade till höger i huvudet, så att ingen
+   egen rad behövs ovanför chatten. */
+.chat-head-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.chat-head-actions .notes-bar { margin-bottom: 0; }
 .status-sel-row { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; }
 .status-sel-row select { padding: 6px 10px; border: 1.5px solid var(--border); border-radius: var(--radius); font-size: 13px; font-family: inherit; background: var(--card); }
 
@@ -632,7 +636,13 @@ a:hover { text-decoration: underline; }
   .type-cards { grid-template-columns: 1fr; }
   .form-row { grid-template-columns: 1fr; }
 }
+/* Bilagor på samma rad som rapportbubblan. Radbryts under den när
+   bredden inte räcker. */
+.msg-with-files { flex-wrap: wrap; align-items: flex-start; gap: 12px 28px; }
+.msg-with-files .case-files { padding: 4px 0 0; margin: 0; border-bottom: none; }
+
 @media (max-width: 640px) {
+  .chat-head-actions { align-items: flex-start; }
   /* Huvudet hade skrivbordsavstånd, så handläggarens namn och titel
      sköt det bredare än skärmen. Länken "HR & Admin" skulle döljas här,
      men skriptet satte den synlig och den bröts på två rader. Den får

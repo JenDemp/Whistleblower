@@ -1339,6 +1339,11 @@ async function getAdminsMap() {
 
 async function renderMsgs(id, messages, perspective, caseExtra) {
   const c = document.getElementById(id);
+  // Bilageraden ligger bredvid rapportbubblan, alltså inne i tråden som
+  // töms nedan. Flytta ut den först, annars försvinner den med innehållet.
+  const scroller = c.closest('.thread-scroll');
+  const files = scroller && scroller.querySelector('.case-files');
+  if (files && c.contains(files)) scroller.insertBefore(files, c);
   if (!messages.length) {
     c.innerHTML = `<div style="text-align:center;color:var(--muted);padding:32px;font-size:14px;">${t('common.noMessages')}</div>`;
     return;
@@ -1366,12 +1371,18 @@ async function renderMsgs(id, messages, perspective, caseExtra) {
       const bubbleEl = wrap.querySelector('.bubble');
       bubbleEl.style.cursor = 'pointer';
       bubbleEl.addEventListener('click', () => showReportModal(senderLabel, m.text, m.created_at, caseExtra));
+      // Bilagorna hör till rapporten och står därför på samma rad, på
+      // den sida som vetter in mot mitten av tråden.
+      if (files) {
+        wrap.classList.add('msg-with-files');
+        own ? wrap.prepend(files) : wrap.appendChild(files);
+      }
     }
     c.appendChild(wrap);
   });
   // Tråden rullar i omslaget som även rymmer bilagorna överst.
-  const scroller = c.closest('.thread-scroll') || c;
-  scroller.scrollTop = scroller.scrollHeight;
+  const scrollBox = scroller || c;
+  scrollBox.scrollTop = scrollBox.scrollHeight;
 }
 
 // ── FÖRSTORAD VY AV ANMÄLAN ─────────────────────────────────────

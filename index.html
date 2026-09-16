@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>JENSEN Whistleblower</title>
-  <link rel="stylesheet" href="style.css?v=20260914d">
+  <link rel="stylesheet" href="style.css?v=20260916a">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.46.0/dist/tabler-icons.min.css">
 </head>
 <body>
@@ -646,28 +646,30 @@
           <div style="font-size:13px;color:var(--muted);" id="ac-reporter-info"></div>
           <div style="font-size:13px;color:var(--muted);"><span data-i18n="adminCase.category">Kategori:</span> <span id="ac-cat"></span> · <span id="ac-dept"></span></div>
         </div>
-        <div class="status-sel-row">
-          <span data-i18n="adminCase.status">Status:</span>
-          <select id="ac-status-sel" onchange="handleStatusChange()">
-            <option value="open" data-i18n="status.open">Öppen</option>
-            <option value="investigating" data-i18n="status.investigating">Under utredning</option>
-            <option value="resolved" data-i18n="status.resolved">Avslutad</option>
-          </select>
+        <div class="chat-head-actions">
+          <div class="status-sel-row">
+            <span data-i18n="adminCase.status">Status:</span>
+            <select id="ac-status-sel" onchange="handleStatusChange()">
+              <option value="open" data-i18n="status.open">Öppen</option>
+              <option value="investigating" data-i18n="status.investigating">Under utredning</option>
+              <option value="resolved" data-i18n="status.resolved">Avslutad</option>
+            </select>
+          </div>
+          <div class="notes-bar">
+            <span class="notes-info" tabindex="0" role="note" aria-describedby="notes-tip">
+              <i class="ti ti-info-circle" aria-hidden="true"></i>
+              <span class="notes-tip" id="notes-tip" data-i18n="notes.tooltip">Här kan du lägga till anteckningar</span>
+            </span>
+            <button type="button" id="btn-notes-toggle" class="btn-notes-toggle"
+                    onclick="toggleNotes()" aria-expanded="false" aria-controls="ac-notes-panel">
+              <i class="ti ti-plus" aria-hidden="true"></i>
+              <span data-i18n="notes.title">Anteckningar</span>
+              <span class="notes-count" id="ac-notes-count"></span>
+            </button>
+          </div>
         </div>
       </div>
 
-      <div class="notes-bar">
-        <span class="notes-info" tabindex="0" role="note" aria-describedby="notes-tip">
-          <i class="ti ti-info-circle" aria-hidden="true"></i>
-          <span class="notes-tip" id="notes-tip" data-i18n="notes.tooltip">Här kan du lägga till anteckningar</span>
-        </span>
-        <button type="button" id="btn-notes-toggle" class="btn-notes-toggle"
-                onclick="toggleNotes()" aria-expanded="false" aria-controls="ac-notes-panel">
-          <i class="ti ti-plus" aria-hidden="true"></i>
-          <span data-i18n="notes.title">Anteckningar</span>
-          <span class="notes-count" id="ac-notes-count"></span>
-        </button>
-      </div>
 
       <div class="case-split" id="ac-split">
         <div class="case-thread">
@@ -712,7 +714,7 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.js"></script>
-<script src="i18n.js?v=20260914d"></script>
-<script src="app.js?v=20260914d"></script>
+<script src="i18n.js?v=20260916a"></script>
+<script src="app.js?v=20260916a"></script>
 </body>
 </html>
